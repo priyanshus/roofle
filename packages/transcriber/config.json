@@ -1,0 +1,23 @@
+{
+    "audio": {
+        "inputSampleRate": 48000,
+        "outputSampleRate": 16000,
+        "inputChannels": 2,
+        "outputChannels": 1,
+        "chunkDurationMs": 20,
+        "queueMaxMs": 1000
+    },
+    "stt": {
+        "maxWsBufferedBytes": 262144,
+        "maxWsQueueBytes": 1048576,
+        "reconnectBaseDelayMs": 500,
+        "reconnectMaxDelayMs": 10000
+    },
+    "vad": {
+        "threshold": 0.01
+    },
+    "echoSuppression": {
+        "threshold": 0.01,
+        "hangoverMs": 500
+    }
+}

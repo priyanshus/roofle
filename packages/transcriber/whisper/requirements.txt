@@ -1,0 +1,14 @@
+# Python whisperx transcription service dependencies.
+#
+# Install with:
+#   pip install -r requirements.txt
+#
+# Note: whisperx pulls in torch, which is large. For CPU-only, install the CPU
+# build of torch first to avoid downloading CUDA wheels:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r requirements.txt
+
+whisperx>=3.1.1
+torch>=2.0.0
+numpy>=1.24
+websockets>=12.0

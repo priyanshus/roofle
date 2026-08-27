@@ -1,0 +1,27 @@
+{
+  "name": "@roofle/app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Roofle - local real-time transcription and LLM analyst for macOS",
+  "author": "Roofle",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx src/server.ts",
+    "start": "npm run build && node dist/server.js"
+  },
+  "dependencies": {
+    "@roofle/analyst": "0.1.0",
+    "@roofle/shared": "0.1.0",
+    "@roofle/transcriber": "0.1.0",
+    "dotenv": "^16.4.5",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.25",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

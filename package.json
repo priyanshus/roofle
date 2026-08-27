@@ -1,0 +1,24 @@
+{
+  "name": "roofle",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Single-user macOS transcription + LLM analyst app (monorepo)",
+  "workspaces": [
+    "packages/shared",
+    "packages/analyst",
+    "packages/transcriber",
+    "packages/app",
+    "packages/app/ui"
+  ],
+  "scripts": {
+    "postinstall": "bash scripts/setup-whisper.sh",
+    "build": "npm run build -w @roofle/shared && npm run build -w @roofle/analyst && npm run build -w @roofle/transcriber && npm run build -w @roofle/ui && npm run build -w @roofle/app",
+    "dev": "npm run build && npm run dev -w @roofle/app",
+    "start": "npm run build && npm run start -w @roofle/app",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}

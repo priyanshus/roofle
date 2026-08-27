@@ -1,0 +1,97 @@
+import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { fetchSession } from '../api/client';
+import type { SessionDetail } from '../types';
+import QuestionCard from '../components/QuestionCard';
+
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString();
+}
+
+export default function SessionView() {
+  const { sessionId } = useParams<{ sessionId: string }>();
+  const [session, setSession] = useState<SessionDetail | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    let cancelled = false;
+    setSession(null);
+    setError(null);
+    fetchSession(sessionId)
+      .then(({ session }) => {
+        if (!cancelled) setSession(session);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load session');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
+
+  if (error) {
+    return (
+      <div className="content">
+        <div className="empty-state">
+          <div className="icon">⚠️</div>
+          <div className="title">Failed to load</div>
+          <div className="hint">{error}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (session === null) {
+    return (
+      <div className="content">
+        <div className="empty-state">
+          <div className="icon">⏳</div>
+          <div className="title">Loading conversation…</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="content">
+      <div className="back-link">
+        <Link to="/library">← Back to conversations</Link>
+      </div>
+
+      <div className="section-head">
+        <h2>💬 {formatTime(session.startedAt)}</h2>
+        <span className="count">{session.questions.length} questions</span>
+      </div>
+
+      <section className="transcript">
+        <div className="transcript-label">📝 Transcription</div>
+        <div className="transcript-text">
+          {session.transcription || 'No transcription for this session.'}
+        </div>
+      </section>
+
+      <section className="questions-panel">
+        <div className="section-head">
+          <h2>❓ Questions</h2>
+          <span className="count">{session.questions.length}</span>
+        </div>
+        {session.questions.length === 0 ? (
+          <div className="empty-state">
+            <div className="icon">💡</div>
+            <div className="title">No questions</div>
+            <div className="hint">No questions were detected in this conversation.</div>
+          </div>
+        ) : (
+          <div className="questions-list">
+            {session.questions.map((q) => (
+              <QuestionCard key={q.id} question={q} />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}

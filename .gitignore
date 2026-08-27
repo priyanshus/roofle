@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Databases
+*.db
+*.db-shm
+*.db-wal
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+
+# Native addon build artifacts
+packages/transcriber/build/
+packages/transcriber/bin/
+
+# Python virtualenv
+packages/transcriber/whisper/.venv/
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
