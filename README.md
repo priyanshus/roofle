@@ -2,7 +2,8 @@
 
 # 🏠 Roofle
 
-**Real-time local transcription & AI clarifying questions for your meetings**
+**An intelligent meeting copilot that analyzes your conversations in real time
+and helps you improve your presentations, communication, and meetings.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D22.5-339933.svg)](package.json)
@@ -14,9 +15,12 @@
 
 ## ✨ What is Roofle?
 
-Roofle is a **single-user macOS app** that captures your microphone and system
-audio, transcribes it **locally** with WhisperX, and runs an LLM analyst that
-surfaces clarifying questions in real time — all while you speak.
+Roofle is an **intelligent meeting copilot** that analyzes your conversations in
+real time and helps you improve your presentations, communication, and meetings.
+
+It captures your microphone and system audio, transcribes it **locally** with
+WhisperX, and runs an LLM analyst that surfaces clarifying questions and
+feedback in real time — all while you speak.
 
 Everything runs on your machine. Your audio never leaves it.
 
