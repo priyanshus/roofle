@@ -1,36 +1,42 @@
-# Roofle
+<div align="center">
+
+# 🏠 Roofle
+
+**Real-time local transcription & AI clarifying questions for your meetings**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D22.5-339933.svg)](package.json)
 [![macOS](https://img.shields.io/badge/macOS-13%2B-000000.svg)](#prerequisites)
 
-A single-user macOS app that captures microphone + system audio, transcribes it
-locally with WhisperX, and runs an LLM analyst that surfaces clarifying
-questions in real time.
+</div>
 
-This is a monorepo consolidation of two previously separate services:
+---
 
-- **`transcriber`** — audio capture + WhisperX transcription (TypeScript + Python).
-- **`analyst`** — LangGraph LLM agent that builds paragraphs and generates questions.
+## ✨ What is Roofle?
 
-The two were previously connected over **Kafka** and a **browser WebSocket**.
-Since this is a single-user app with no parallel users, both are removed: the
-transcriber and analyst now run **in the same Node process** and communicate
-over an in-process event bus.
+Roofle is a **single-user macOS app** that captures your microphone and system
+audio, transcribes it **locally** with WhisperX, and runs an LLM analyst that
+surfaces clarifying questions in real time — all while you speak.
 
-## Features
+Everything runs on your machine. Your audio never leaves it.
 
-- **Local, private transcription** — audio never leaves your machine.
-- **Microphone + system audio** capture via the native ScreenCaptureKit addon.
-- **Real-time subtitles** streamed to the browser over WebSocket.
-- **LLM analyst** that surfaces clarifying questions as you speak.
-- **No `.app` bundle** — runs as a plain Node server, so there are no Apple
+---
+
+## 🚀 Features
+
+- 🔒 **Local & private** — audio is transcribed on-device, nothing is uploaded.
+- 🎙️ **Microphone + system audio** capture via a native ScreenCaptureKit addon.
+- 💬 **Real-time subtitles** streamed to the browser over WebSocket.
+- 🧠 **LLM analyst** that asks clarifying questions as you talk.
+- 🧩 **No `.app` bundle** — runs as a plain Node server, so there are no Apple
   code-signing, Gatekeeper, or XProtect issues.
 
-## Architecture
+---
 
-The app is a **local web app**: a Node server runs on your machine, serves the
-UI over HTTP, and pushes live transcriptions/questions to the browser over
+## 🏗️ Architecture
+
+Roofle is a **local web app**: a Node server runs on your machine, serves the UI
+over HTTP, and pushes live transcriptions and questions to the browser over
 WebSocket.
 
 ```
@@ -61,7 +67,9 @@ flowchart LR
     WS -- WebSocket broadcast --> UI
 ```
 
-## Monorepo layout
+---
+
+## 📦 Project layout
 
 ```
 roofle/
@@ -69,18 +77,22 @@ roofle/
 ├── packages/
 │   ├── shared/                  # typed contracts (TranscriptionEvent, QuestionEvent, SttMessage)
 │   ├── transcriber/             # audio capture + pipeline + WhisperX server
-│   ├── analyst/                 # LangGraph agent + SQLite (migrated to TS)
+│   ├── analyst/                 # LangGraph agent + SQLite
 │   └── app/                     # Node HTTP + WebSocket server + browser UI
 ```
 
-## Prerequisites
+---
+
+## ✅ Prerequisites
 
 - **macOS 13.0+** (ScreenCaptureKit)
 - **Node.js ≥ 22.5** (analyst uses `node:sqlite`)
 - **Xcode Command Line Tools** (native addon)
 - **Python 3.10+** (installed automatically into a venv by `npm install`)
 
-## Quick start
+---
+
+## ⚡ Quick start
 
 ```bash
 # 1. Install everything. `npm install` compiles the native addon AND creates a
@@ -97,11 +109,13 @@ npm run dev
 
 Then open **http://127.0.0.1:8080** in your browser to see live subtitles.
 
-> **macOS permissions:** grant **Screen Recording** and **Microphone** access to
-> the app you run from (e.g. Terminal or VS Code), then restart it. The
+> ⚠️ **macOS permissions:** grant **Screen Recording** and **Microphone** access
+> to the app you run from (e.g. Terminal or VS Code), then restart it. The
 > permission only takes effect on restart.
 
-## Scripts
+---
+
+## 🛠️ Scripts
 
 | Command | Description |
 | --- | --- |
@@ -111,7 +125,9 @@ Then open **http://127.0.0.1:8080** in your browser to see live subtitles.
 | `npm run typecheck` | Type-check all packages |
 | `npm run test` | Run transcriber unit tests |
 
-## Configuration
+---
+
+## ⚙️ Configuration
 
 - **LLM + analysis** — [`packages/analyst/config.json`](packages/analyst/config.json)
 - **Audio / STT / VAD** — [`packages/transcriber/config.json`](packages/transcriber/config.json)
@@ -122,33 +138,28 @@ Then open **http://127.0.0.1:8080** in your browser to see live subtitles.
 The model is set via `WHISPER_MODEL` (default `base`) in the app env. The Node
 server spawns the Python server with this value.
 
-## What was removed
+---
 
-- **Kafka** (`kafkajs`) — the transcriber→analyst and analyst→UI round-trip is
-  now an in-process event bus with shared typed contracts.
-- **Electron** — replaced with a plain Node HTTP + WebSocket server, so there is
-  no `.app` bundle and no Apple code-signing requirement.
-- The **localhost WebSocket to Python** remains, since WhisperX must run as a
-  separate Python process.
-
-## Known limitations
+## ⚠️ Known limitations
 
 - Whisper alignment is hardcoded to English (`language_code="en"`).
 - The analyst uses `node:sqlite` (Node 22.5+).
 - System-audio capture requires the native ScreenCaptureKit addon and macOS
   Screen Recording permission (granted to the terminal/Node process).
 
-## Contributing
+---
+
+## 🤝 Contributing
 
 Contributions are welcome! Please read the
 [contributing guidelines](CONTRIBUTING.md) and our
 [code of conduct](CODE_OF_CONDUCT.md) before getting started.
 
-## Security
+## 🔐 Security
 
 Found a security issue? Please report it privately — see
 [SECURITY.md](SECURITY.md).
 
-## License
+## 📄 License
 
 [MIT](LICENSE) © Roofle contributors
