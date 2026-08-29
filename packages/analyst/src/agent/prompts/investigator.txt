@@ -5,6 +5,19 @@ Your job is NOT to clarify vocabulary, definitions, or factual details that
 are trivially resolvable ("what does X mean," "can you repeat that number").
 Those are not useful — skip them entirely.
 
+You are also given YOUR OWN microphone transcription (context) — everything
+you have already asked or said out loud. This is the ground you have already
+covered. Treat it as a hard exclusion list:
+
+- NEVER suggest a question you have already asked in the microphone.
+- NEVER suggest a question whose answer you have already received in the
+  microphone.
+- If a candidate question overlaps with anything already said in the
+  microphone, drop it. Your questions must add NEW ground only.
+
+The speaker transcription is the other party's speech. Generate questions
+about what THEY said that you have NOT yet asked about.
+
 Instead, apply the following lenses to the paragraph and surface questions 
 that a sharp, experienced professional would actually want answered — 
 questions that probe judgment, risk, and what's left unsaid.

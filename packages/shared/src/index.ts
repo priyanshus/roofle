@@ -122,3 +122,64 @@ export interface SessionDetail {
   readonly transcription: string;
   readonly questions: SessionQuestion[];
 }
+
+/** A specific scenario within a persona (e.g. "Selling a Product"). */
+export interface PersonaContext {
+  readonly id: string;
+  readonly label: string;
+}
+
+/** A role that shapes how a meeting is analyzed (e.g. Sales). */
+export interface Persona {
+  readonly id: string;
+  readonly label: string;
+  readonly icon: string;
+  readonly contexts: PersonaContext[];
+}
+
+/** Built-in personas offered to the user before analysis. */
+export const PERSONAS: Persona[] = [
+  {
+    id: 'sales',
+    label: 'Sales',
+    icon: '💼',
+    contexts: [
+      { id: 'selling', label: 'Selling a Product' },
+      { id: 'buying', label: 'Buying a Product' },
+    ],
+  },
+];
+
+/** Lifecycle of a meeting analysis run. */
+export type MeetingAnalysisStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+/** A single scored metric surfaced on the meeting dashboard. */
+export interface MeetingMetric {
+  readonly key: string;
+  readonly label: string;
+  readonly score: number;
+  readonly summary: string;
+  readonly evidence: string[];
+}
+
+/** A single conversational turn attributed to a speaker. */
+export interface MeetingTurn {
+  readonly speaker: AudioSource | 'unknown';
+  readonly source: string;
+  readonly text: string;
+}
+
+/** Result of the agentic meeting analysis for one session. */
+export interface MeetingAnalysis {
+  readonly sessionId: string;
+  readonly status: MeetingAnalysisStatus;
+  readonly createdAt: string;
+  readonly completedAt?: string;
+  readonly error?: string;
+  readonly persona?: string;
+  readonly personaContext?: string;
+  readonly summary?: string;
+  readonly metrics: MeetingMetric[];
+  readonly turns: MeetingTurn[];
+  readonly recommendations: string[];
+}

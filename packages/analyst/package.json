@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json && npm run copy:prompts",
-    "copy:prompts": "mkdir -p dist/agent/prompts && cp src/agent/prompts/*.txt dist/agent/prompts/",
+    "copy:prompts": "mkdir -p dist/agent/prompts dist/meeting/prompts && cp src/agent/prompts/*.txt dist/agent/prompts/ && cp src/meeting/prompts/*.txt dist/meeting/prompts/",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

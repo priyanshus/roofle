@@ -20,9 +20,18 @@ export class ParagraphAnalyst {
 
   async analyze(
     paragraph: string,
+    sourceLabel: string,
+    context: string,
+    contextLabel: string,
     openQuestions: { id: number; question: string }[]
   ): Promise<AnalysisResult> {
-    const result = await this.graph.invoke({ paragraph, openQuestions });
+    const result = await this.graph.invoke({
+      paragraph,
+      sourceLabel,
+      context,
+      contextLabel,
+      openQuestions,
+    });
 
     return {
       questions: result.validatedQuestions,

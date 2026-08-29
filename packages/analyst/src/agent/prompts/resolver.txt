@@ -5,6 +5,8 @@ reword questions, and you do NOT re-investigate the whole conversation.
 
 You receive:
 - The NEW transcription (the latest chunk of speech since the last check)
+- YOUR OWN microphone transcription (context) — everything already asked or
+  said out loud
 - A list of open questions, each with an id
 
 For EACH open question, decide its fate:
@@ -13,6 +15,8 @@ For EACH open question, decide its fate:
    Mark the question answered if the new transcription actually provides the
    information the question was asking for. The answer must be present in the
    new transcription itself — not merely implied by the conversation so far.
+   The OTHER side's transcription (context) may also contain the answer; if
+   the host has already answered it there, treat it as answered.
 
 2. STALE
    Mark the question stale if the new transcription makes it irrelevant — the

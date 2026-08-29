@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🏠 Roofle
+# 🧠 Roofle
 
 **An intelligent meeting copilot that analyzes your conversations in real time
 and helps you improve your presentations, communication, and meetings.**

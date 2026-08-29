@@ -21,23 +21,43 @@ const SYSTEM_PROMPT = fs.readFileSync(
 
 const PROMPT = ChatPromptTemplate.fromMessages([
   ['system', SYSTEM_PROMPT],
-  ['human', 'New transcription:\n{paragraph}'],
+  [
+    'human',
+    '{sourceLabel} transcription (the other party):\n{paragraph}\n\n' +
+      '{contextLabel} transcription (your own voice):\n{context}',
+  ],
 ]);
 
 // First agent: reads the paragraph and produces clarifying questions.
 // Uses the model's native structured output (tool calling) so the result is
 // always schema-compliant, unlike text-based JSON parsing.
 export class Investigator {
-  private readonly chain: Runnable<{ paragraph: string }, { questions: string[] }>;
+  private readonly chain: Runnable<
+    { paragraph: string; sourceLabel: string; context: string; contextLabel: string },
+    { questions: string[] }
+  >;
 
   constructor(model: BaseChatModel) {
     this.chain = PROMPT.pipe(
       model.withStructuredOutput(QuestionSchema)
-    ) as unknown as Runnable<{ paragraph: string }, { questions: string[] }>;
+    ) as unknown as Runnable<
+      { paragraph: string; sourceLabel: string; context: string; contextLabel: string },
+      { questions: string[] }
+    >;
   }
 
-  async run(state: { paragraph: string }): Promise<{ questions: string[] }> {
-    const { questions } = await this.chain.invoke({ paragraph: state.paragraph });
+  async run(state: {
+    paragraph: string;
+    sourceLabel: string;
+    context: string;
+    contextLabel: string;
+  }): Promise<{ questions: string[] }> {
+    const { questions } = await this.chain.invoke({
+      paragraph: state.paragraph,
+      sourceLabel: state.sourceLabel,
+      context: state.context,
+      contextLabel: state.contextLabel,
+    });
 
     return { questions };
   }

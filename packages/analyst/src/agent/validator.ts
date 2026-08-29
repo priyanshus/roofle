@@ -21,7 +21,12 @@ const SYSTEM_PROMPT = fs.readFileSync(
 
 const PROMPT = ChatPromptTemplate.fromMessages([
   ['system', SYSTEM_PROMPT],
-  ['human', 'Paragraph:\n{paragraph}\n\nCandidate questions:\n{questions}'],
+  [
+    'human',
+    '{sourceLabel} transcription (the other party):\n{paragraph}\n\n' +
+      '{contextLabel} transcription (your own voice):\n{context}\n\n' +
+      'Candidate questions:\n{questions}',
+  ],
 ]);
 
 // Second agent: filters out answered or unimportant questions.
@@ -29,7 +34,13 @@ const PROMPT = ChatPromptTemplate.fromMessages([
 // always schema-compliant, unlike text-based JSON parsing.
 export class Validator {
   private readonly chain: Runnable<
-    { paragraph: string; questions: string },
+    {
+      paragraph: string;
+      sourceLabel: string;
+      context: string;
+      contextLabel: string;
+      questions: string;
+    },
     { questions: string[] }
   >;
 
@@ -37,17 +48,29 @@ export class Validator {
     this.chain = PROMPT.pipe(
       model.withStructuredOutput(ValidatedQuestionSchema)
     ) as unknown as Runnable<
-      { paragraph: string; questions: string },
+      {
+        paragraph: string;
+        sourceLabel: string;
+        context: string;
+        contextLabel: string;
+        questions: string;
+      },
       { questions: string[] }
     >;
   }
 
   async run(state: {
     paragraph: string;
+    sourceLabel: string;
+    context: string;
+    contextLabel: string;
     questions: string[];
   }): Promise<{ validatedQuestions: string[] }> {
     const { questions } = await this.chain.invoke({
       paragraph: state.paragraph,
+      sourceLabel: state.sourceLabel,
+      context: state.context,
+      contextLabel: state.contextLabel,
       questions: state.questions.join('\n'),
     });
 

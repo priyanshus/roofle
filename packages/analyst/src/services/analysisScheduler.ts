@@ -11,6 +11,14 @@ const STATE_COOLDOWN = 'cooldown';
 const STATUS_ANSWERED = 'answered';
 const STATUS_STALE = 'stale';
 
+const SOURCE_MICROPHONE = 'microphone';
+const SOURCE_SYSTEM = 'system';
+
+// Human-readable labels so the LLM can tell which transcription is the other
+// party's speech and which is the user's own microphone voice.
+const LABEL_MICROPHONE = 'Microphone (your own voice)';
+const LABEL_SYSTEM = 'Speaker (the other party)';
+
 export interface SchedulerUpdate {
   sessionId: string;
   source: string;
@@ -77,7 +85,15 @@ class SessionState {
       execute: async () => {
         const delta = this.text.substring(this.lastAnalyzedLength);
         const openQuestions = this.scheduler.db.getOpenQuestions(this.sessionId, this.source);
-        const result = await this.scheduler.analyst.analyze(delta, openQuestions);
+        const { context, contextLabel } = this.scheduler.getContext(this.sessionId, this.source);
+        const sourceLabel = this.scheduler.getLabel(this.source);
+        const result = await this.scheduler.analyst.analyze(
+          delta,
+          sourceLabel,
+          context,
+          contextLabel,
+          openQuestions
+        );
         return { key: this.key, result };
       },
     });
@@ -177,6 +193,22 @@ export class AnalysisScheduler {
 
   private key(paragraph: Paragraph): string {
     return `${paragraph.sessionId}:${paragraph.source}`;
+  }
+
+  // Returns the other source's accumulated transcription plus its label, so
+  // the agents can tell which voice it is and avoid re-asking what the user
+  // has already said. Empty when the other source has no text yet.
+  getContext(sessionId: string, source: string): { context: string; contextLabel: string } {
+    const other = source === SOURCE_MICROPHONE ? SOURCE_SYSTEM : SOURCE_MICROPHONE;
+    return {
+      context: this.db.getParagraphText(sessionId, other) ?? '',
+      contextLabel: this.getLabel(other),
+    };
+  }
+
+  // Maps a raw source id to a human-readable label for the LLM prompt.
+  getLabel(source: string): string {
+    return source === SOURCE_MICROPHONE ? LABEL_MICROPHONE : LABEL_SYSTEM;
   }
 
   private getOrCreate(key: string, paragraph: Paragraph): SessionState {

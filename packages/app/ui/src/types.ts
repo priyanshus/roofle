@@ -34,6 +34,48 @@ export interface SessionDetail {
   readonly questions: SessionQuestion[];
 }
 
+export type MeetingAnalysisStatus = 'pending' | 'running' | 'completed' | 'failed';
+
+export interface PersonaContext {
+  readonly id: string;
+  readonly label: string;
+}
+
+export interface Persona {
+  readonly id: string;
+  readonly label: string;
+  readonly icon: string;
+  readonly contexts: PersonaContext[];
+}
+
+export interface MeetingMetric {
+  readonly key: string;
+  readonly label: string;
+  readonly score: number;
+  readonly summary: string;
+  readonly evidence: string[];
+}
+
+export interface MeetingTurn {
+  readonly speaker: 'microphone' | 'system' | 'unknown';
+  readonly source: string;
+  readonly text: string;
+}
+
+export interface MeetingAnalysis {
+  readonly sessionId: string;
+  readonly status: MeetingAnalysisStatus;
+  readonly createdAt: string;
+  readonly completedAt?: string;
+  readonly error?: string;
+  readonly persona?: string;
+  readonly personaContext?: string;
+  readonly summary?: string;
+  readonly metrics: MeetingMetric[];
+  readonly turns: MeetingTurn[];
+  readonly recommendations: string[];
+}
+
 export type AppStatus =
   | 'starting'
   | 'loading-model'

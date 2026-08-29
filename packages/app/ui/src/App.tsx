@@ -3,6 +3,7 @@ import { useLiveConnection } from './ws/useLiveConnection';
 import LiveView from './views/LiveView';
 import LibraryView from './views/LibraryView';
 import SessionView from './views/SessionView';
+import MeetingView from './views/MeetingView';
 
 export default function App() {
   const { state, clearAll } = useLiveConnection();
@@ -25,6 +26,9 @@ export default function App() {
           <NavLink to="/library" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
             Library
           </NavLink>
+          <NavLink to="/meetings" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+            Meeting CoPilot
+          </NavLink>
         </nav>
 
         <div className="spacer" />
@@ -43,6 +47,7 @@ export default function App() {
           <Route path="/" element={<LiveView live={state} onClear={clearAll} />} />
           <Route path="/library" element={<LibraryView />} />
           <Route path="/sessions/:sessionId" element={<SessionView />} />
+          <Route path="/meetings" element={<MeetingView />} />
         </Routes>
       </main>
     </div>

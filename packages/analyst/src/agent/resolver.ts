@@ -26,7 +26,9 @@ const PROMPT = ChatPromptTemplate.fromMessages([
   ['system', SYSTEM_PROMPT],
   [
     'human',
-    'New transcription:\n{paragraph}\n\nOpen questions (id: question):\n{questions}',
+    '{sourceLabel} transcription (the other party):\n{paragraph}\n\n' +
+      '{contextLabel} transcription (your own voice):\n{context}\n\n' +
+      'Open questions (id: question):\n{questions}',
   ],
 ]);
 
@@ -35,7 +37,13 @@ const PROMPT = ChatPromptTemplate.fromMessages([
 // or stale. It NEVER generates new questions, so there is no feedback loop.
 export class Resolver {
   private readonly chain: Runnable<
-    { paragraph: string; questions: string },
+    {
+      paragraph: string;
+      sourceLabel: string;
+      context: string;
+      contextLabel: string;
+      questions: string;
+    },
     { answeredIds: number[]; staleIds: number[] }
   >;
 
@@ -43,17 +51,29 @@ export class Resolver {
     this.chain = PROMPT.pipe(
       model.withStructuredOutput(ResolutionSchema)
     ) as unknown as Runnable<
-      { paragraph: string; questions: string },
+      {
+        paragraph: string;
+        sourceLabel: string;
+        context: string;
+        contextLabel: string;
+        questions: string;
+      },
       { answeredIds: number[]; staleIds: number[] }
     >;
   }
 
   async run(state: {
     paragraph: string;
+    sourceLabel: string;
+    context: string;
+    contextLabel: string;
     openQuestions: { id: number; question: string }[];
   }): Promise<{ answeredIds: number[]; staleIds: number[] }> {
     const { answeredIds, staleIds } = await this.chain.invoke({
       paragraph: state.paragraph,
+      sourceLabel: state.sourceLabel,
+      context: state.context,
+      contextLabel: state.contextLabel,
       questions: state.openQuestions.map((q) => `${q.id}: ${q.question}`).join('\n'),
     });
 

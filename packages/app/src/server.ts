@@ -5,13 +5,14 @@ import path from 'path';
 import { WebSocketServer, WebSocket } from 'ws';
 import { Analyst } from '@roofle/analyst';
 import { AudioStreamingApp, loadConfig as loadTranscriberConfig } from '@roofle/transcriber';
-import type { QuestionEvent, SttMessage } from '@roofle/shared';
+import { PERSONAS, type MeetingAnalysis, type QuestionEvent, type SttMessage } from '@roofle/shared';
 import { WhisperServer } from './whisper-server';
 
 const WS_EVENTS = {
   stt: 'stt',
   question: 'question',
   status: 'status',
+  meeting: 'meeting',
 } as const;
 
 const MIME: Record<string, string> = {
@@ -42,7 +43,7 @@ function resolvePaths(): AppPaths {
 function loadAnalystConfig() {
   const configPath = path.resolve(__dirname, '../../analyst/config.json');
   const raw = fs.readFileSync(configPath, 'utf8');
-  return JSON.parse(raw) as {
+  const config = JSON.parse(raw) as {
     llm: {
       provider: 'openrouter' | 'ollama';
       model: string;
@@ -59,6 +60,23 @@ function loadAnalystConfig() {
       maxRetries: number;
     };
   };
+
+  // Env vars override config.json so the LLM can be switched without editing
+  // the file. Only set values are applied; unset ones keep the file default.
+  if (process.env.LLM_PROVIDER) {
+    config.llm.provider = process.env.LLM_PROVIDER as 'openrouter' | 'ollama';
+  }
+  if (process.env.LLM_MODEL) {
+    config.llm.model = process.env.LLM_MODEL;
+  }
+  if (process.env.LLM_BASE_URL) {
+    config.llm.baseUrl = process.env.LLM_BASE_URL;
+  }
+  if (process.env.LLM_TEMPERATURE) {
+    config.llm.temperature = Number(process.env.LLM_TEMPERATURE);
+  }
+
+  return config;
 }
 
 class RoofleServer {
@@ -113,6 +131,7 @@ class RoofleServer {
       config: loadAnalystConfig(),
       dbPath: this.paths.dbPath,
       onQuestion: (question) => this.sendQuestion(question),
+      onMeetingUpdate: (analysis) => this.sendMeeting(analysis),
     });
 
     const transcriberConfig = loadTranscriberConfig(process.env);
@@ -196,6 +215,11 @@ class RoofleServer {
       return false;
     }
 
+    if (req.method === 'GET' && urlPath === '/api/personas') {
+      this.sendJson(res, 200, { personas: PERSONAS });
+      return true;
+    }
+
     if (req.method === 'GET' && urlPath === '/api/sessions') {
       const sessions = this.analyst?.getSessions() ?? [];
       this.sendJson(res, 200, { sessions });
@@ -214,8 +238,76 @@ class RoofleServer {
       return true;
     }
 
+    if (req.method === 'GET' && urlPath === '/api/meetings') {
+      const analyses = this.analyst?.getMeetingAnalyses() ?? [];
+      this.sendJson(res, 200, { analyses });
+      return true;
+    }
+
+    const meetingMatch = urlPath.match(/^\/api\/meetings\/([^/]+)$/);
+    if (meetingMatch) {
+      const sessionId = decodeURIComponent(meetingMatch[1]);
+
+      if (req.method === 'GET') {
+        const query = new URL(req.url ?? '', 'http://localhost').searchParams;
+        const persona = query.get('persona') ?? undefined;
+        const personaContext = query.get('personaContext') ?? undefined;
+        const analysis = this.analyst?.getMeetingAnalysis(sessionId, persona, personaContext) ?? null;
+        if (!analysis) {
+          this.sendJson(res, 404, { error: 'Meeting analysis not found' });
+          return true;
+        }
+        this.sendJson(res, 200, { analysis });
+        return true;
+      }
+
+      if (req.method === 'POST') {
+        this.readJsonBody(req, (err, body) => {
+          if (err) {
+            this.sendJson(res, 400, { error: err.message });
+            return;
+          }
+
+          const persona = typeof body?.persona === 'string' ? body.persona : undefined;
+          const personaContext =
+            typeof body?.personaContext === 'string' ? body.personaContext : undefined;
+
+          const analysis = this.analyst?.analyzeMeeting(sessionId, persona, personaContext) ?? null;
+          if (!analysis) {
+            this.sendJson(res, 404, { error: 'Session not found' });
+            return;
+          }
+          this.sendJson(res, 200, { analysis });
+        });
+        return true;
+      }
+    }
+
     this.sendJson(res, 404, { error: 'Not found' });
     return true;
+  }
+
+  // Reads and parses a JSON request body. Empty bodies resolve to {}.
+  private readJsonBody(
+    req: http.IncomingMessage,
+    cb: (err: Error | null, body?: Record<string, unknown>) => void
+  ): void {
+    let raw = '';
+    req.on('data', (chunk: Buffer) => {
+      raw += chunk.toString('utf8');
+    });
+    req.on('end', () => {
+      if (!raw.trim()) {
+        cb(null, {});
+        return;
+      }
+      try {
+        cb(null, JSON.parse(raw) as Record<string, unknown>);
+      } catch {
+        cb(new Error('Invalid JSON body'));
+      }
+    });
+    req.on('error', (err) => cb(err));
   }
 
   private sendJson(res: http.ServerResponse, status: number, body: unknown): void {
@@ -234,6 +326,10 @@ class RoofleServer {
 
   private sendQuestion(question: QuestionEvent): void {
     this.broadcast(WS_EVENTS.question, { question });
+  }
+
+  private sendMeeting(analysis: MeetingAnalysis): void {
+    this.broadcast(WS_EVENTS.meeting, { analysis });
   }
 
   private sendStatus(state: string, detail?: string): void {
