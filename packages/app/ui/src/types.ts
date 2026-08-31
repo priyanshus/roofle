@@ -56,12 +56,6 @@ export interface MeetingMetric {
   readonly evidence: string[];
 }
 
-export interface MeetingTurn {
-  readonly speaker: 'microphone' | 'system' | 'unknown';
-  readonly source: string;
-  readonly text: string;
-}
-
 export interface MeetingAnalysis {
   readonly sessionId: string;
   readonly status: MeetingAnalysisStatus;
@@ -70,10 +64,7 @@ export interface MeetingAnalysis {
   readonly error?: string;
   readonly persona?: string;
   readonly personaContext?: string;
-  readonly summary?: string;
   readonly metrics: MeetingMetric[];
-  readonly turns: MeetingTurn[];
-  readonly recommendations: string[];
 }
 
 export type AppStatus =

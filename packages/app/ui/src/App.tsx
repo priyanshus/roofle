@@ -1,9 +1,10 @@
 import { NavLink, Route, Routes } from 'react-router-dom';
-import { useLiveConnection } from './ws/useLiveConnection';
-import LiveView from './views/LiveView';
+import { LibraryIcon, LogoMark, SparkIcon, TranscriptIcon } from './components/Icons';
 import LibraryView from './views/LibraryView';
-import SessionView from './views/SessionView';
+import LiveView from './views/LiveView';
 import MeetingView from './views/MeetingView';
+import SessionView from './views/SessionView';
+import { useLiveConnection } from './ws/useLiveConnection';
 
 export default function App() {
   const { state, clearAll } = useLiveConnection();
@@ -12,7 +13,9 @@ export default function App() {
     <div className="app">
       <header className="header">
         <div className="brand">
-          <div className="brand-logo">🎙️</div>
+          <div className="brand-logo">
+            <LogoMark />
+          </div>
           <div>
             <h1>Roofle</h1>
             <div className="tagline">Live Intelligence</div>
@@ -21,13 +24,13 @@ export default function App() {
 
         <nav className="nav">
           <NavLink to="/" end className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
-            Live
+            <TranscriptIcon size={15} /> Live
           </NavLink>
           <NavLink to="/library" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
-            Library
+            <LibraryIcon size={15} /> Library
           </NavLink>
           <NavLink to="/meetings" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
-            Meeting CoPilot
+            <SparkIcon size={15} /> Meeting CoPilot
           </NavLink>
         </nav>
 

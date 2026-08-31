@@ -24,7 +24,10 @@ export function buildGraph(model: BaseChatModel) {
   const resolver = new Resolver(model);
 
   const graph = new StateGraph(AgentState)
-    .addNode('investigator', (state) => investigator.run(state))
+    .addNode('investigator', async (state) => {
+      const { questions } = await investigator.run(state);
+      return { questions };
+    })
     .addNode('validator', (state) => validator.run(state))
     .addNode('resolver', (state) => resolver.run(state))
     .addEdge(START, 'investigator')

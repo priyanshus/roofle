@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Maps a persona id to its prompt directory. The generic fallback (no persona)
-// uses the original evaluator/summarizer prompts at the prompts root.
+// uses the original evaluator prompt at the prompts root.
 const PROMPT_DIRS: Record<string, string> = {
   sales: 'sales',
   engineering: 'engineering',
@@ -32,7 +32,7 @@ export function resolvePersona(
 
 // Loads the persona-specific prompt text, falling back to the generic prompt
 // when the persona has no dedicated directory.
-export function loadPrompt(kind: 'evaluator' | 'summarizer', personaId?: string): string {
+export function loadPrompt(kind: 'evaluator', personaId?: string): string {
   const dir = personaId ? PROMPT_DIRS[personaId] : undefined;
   const file = dir ? path.join(dir, `${kind}.txt`) : `${kind}.txt`;
 

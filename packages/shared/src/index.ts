@@ -172,13 +172,6 @@ export interface MeetingMetric {
   readonly evidence: string[];
 }
 
-/** A single conversational turn attributed to a speaker. */
-export interface MeetingTurn {
-  readonly speaker: AudioSource | 'unknown';
-  readonly source: string;
-  readonly text: string;
-}
-
 /** Result of the agentic meeting analysis for one session. */
 export interface MeetingAnalysis {
   readonly sessionId: string;
@@ -188,8 +181,5 @@ export interface MeetingAnalysis {
   readonly error?: string;
   readonly persona?: string;
   readonly personaContext?: string;
-  readonly summary?: string;
   readonly metrics: MeetingMetric[];
-  readonly turns: MeetingTurn[];
-  readonly recommendations: string[];
 }

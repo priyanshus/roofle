@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchSessions } from '../api/client';
+import { AlertIcon, LibraryIcon, SpinnerIcon } from '../components/Icons';
 import type { SessionSummary } from '../types';
 
 function formatTime(iso: string): string {
@@ -31,7 +32,9 @@ export default function LibraryView() {
     return (
       <div className="content">
         <div className="empty-state">
-          <div className="icon">⚠️</div>
+          <div className="icon">
+            <AlertIcon size={30} />
+          </div>
           <div className="title">Failed to load</div>
           <div className="hint">{error}</div>
         </div>
@@ -43,7 +46,9 @@ export default function LibraryView() {
     return (
       <div className="content">
         <div className="empty-state">
-          <div className="icon">⏳</div>
+          <div className="icon">
+            <SpinnerIcon size={30} />
+          </div>
           <div className="title">Loading conversations…</div>
         </div>
       </div>
@@ -53,13 +58,15 @@ export default function LibraryView() {
   return (
     <div className="content">
       <div className="section-head">
-        <h2>📚 Conversations</h2>
+        <h2>Conversations</h2>
         <span className="count">{sessions.length}</span>
       </div>
 
       {sessions.length === 0 ? (
         <div className="empty-state">
-          <div className="icon">🗂️</div>
+          <div className="icon">
+            <LibraryIcon size={30} />
+          </div>
           <div className="title">No conversations yet</div>
           <div className="hint">Past sessions will appear here after you capture audio.</div>
         </div>

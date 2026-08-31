@@ -46,8 +46,6 @@ export class MeetingAnalysisRepository {
       persona,
       personaContext,
       metrics: [],
-      turns: [],
-      recommendations: [],
     };
   }
 
@@ -104,10 +102,7 @@ export class MeetingAnalysisRepository {
     result: Omit<MeetingAnalysis, 'sessionId' | 'status' | 'createdAt'>
   ): void {
     const payload = JSON.stringify({
-      summary: result.summary,
       metrics: result.metrics,
-      turns: result.turns,
-      recommendations: result.recommendations,
     });
 
     this.db
@@ -146,12 +141,7 @@ export class MeetingAnalysisRepository {
       error: typeof parsed.error === 'string' ? parsed.error : undefined,
       persona: row.persona ?? undefined,
       personaContext: row.persona_context ?? undefined,
-      summary: typeof parsed.summary === 'string' ? parsed.summary : undefined,
       metrics: Array.isArray(parsed.metrics) ? (parsed.metrics as MeetingAnalysis['metrics']) : [],
-      turns: Array.isArray(parsed.turns) ? (parsed.turns as MeetingAnalysis['turns']) : [],
-      recommendations: Array.isArray(parsed.recommendations)
-        ? (parsed.recommendations as string[])
-        : [],
     };
   }
 }

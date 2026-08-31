@@ -1,8 +1,8 @@
-import { z } from 'zod';
+import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 import { ChatPromptTemplate } from '@langchain/core/prompts';
 import type { Runnable } from '@langchain/core/runnables';
-import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import type { MeetingMetric, MeetingTurn } from '@roofle/shared';
+import type { MeetingMetric } from '@roofle/shared';
+import { z } from 'zod';
 import { loadPrompt, resolvePersona } from './personas.js';
 
 const MetricSchema = z.object({
@@ -21,15 +21,16 @@ const MetricSchema = z.object({
 
 const PROMPT = ChatPromptTemplate.fromMessages([
   ['system', '{systemPrompt}'],
-  ['human', 'Turns:\n{turns}'],
+  ['human', 'Transcription:\n{transcription}'],
 ]);
 
-// Second agent: scores the meeting across quality metrics, each with evidence
-// quoted from the turns so the dashboard can justify every score. The prompt is
+// The only agent in the meeting-analysis graph: scores the meeting across
+// quality metrics directly from the raw transcription, each with evidence
+// quoted from the text so the dashboard can justify every score. The prompt is
 // selected per persona so the metrics reflect the chosen role.
 export class Evaluator {
   private readonly chain: Runnable<
-    { systemPrompt: string; turns: string },
+    { systemPrompt: string; transcription: string },
     { metrics: MeetingMetric[] }
   >;
 
@@ -37,20 +38,16 @@ export class Evaluator {
     this.chain = PROMPT.pipe(
       model.withStructuredOutput(MetricSchema)
     ) as unknown as Runnable<
-      { systemPrompt: string; turns: string },
+      { systemPrompt: string; transcription: string },
       { metrics: MeetingMetric[] }
     >;
   }
 
   async run(state: {
-    turns: MeetingTurn[];
+    transcription: string;
     persona?: string;
     personaContext?: string;
   }): Promise<{ metrics: MeetingMetric[] }> {
-    const turnsText = state.turns
-      .map((t) => `[${t.speaker}] ${t.text}`)
-      .join('\n');
-
     const { label } = resolvePersona(state.persona, state.personaContext);
     const systemPrompt = loadPrompt('evaluator', state.persona).replace(
       '{persona}',
@@ -59,7 +56,7 @@ export class Evaluator {
 
     const { metrics } = await this.chain.invoke({
       systemPrompt,
-      turns: turnsText,
+      transcription: state.transcription,
     });
     return { metrics };
   }

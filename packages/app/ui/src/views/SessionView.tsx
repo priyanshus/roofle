@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { fetchSession } from '../api/client';
-import type { SessionDetail } from '../types';
+import { AlertIcon, BackIcon, QuestionIcon, SpinnerIcon, TranscriptIcon } from '../components/Icons';
 import QuestionCard from '../components/QuestionCard';
+import type { SessionDetail } from '../types';
 
 function formatTime(iso: string): string {
   const d = new Date(iso);
@@ -36,7 +37,9 @@ export default function SessionView() {
     return (
       <div className="content">
         <div className="empty-state">
-          <div className="icon">⚠️</div>
+          <div className="icon">
+            <AlertIcon size={30} />
+          </div>
           <div className="title">Failed to load</div>
           <div className="hint">{error}</div>
         </div>
@@ -48,7 +51,9 @@ export default function SessionView() {
     return (
       <div className="content">
         <div className="empty-state">
-          <div className="icon">⏳</div>
+          <div className="icon">
+            <SpinnerIcon size={30} />
+          </div>
           <div className="title">Loading conversation…</div>
         </div>
       </div>
@@ -58,16 +63,20 @@ export default function SessionView() {
   return (
     <div className="content">
       <div className="back-link">
-        <Link to="/library">← Back to conversations</Link>
+        <Link to="/library">
+          <BackIcon size={15} /> Back to conversations
+        </Link>
       </div>
 
       <div className="section-head">
-        <h2>💬 {formatTime(session.startedAt)}</h2>
+        <h2>{formatTime(session.startedAt)}</h2>
         <span className="count">{session.questions.length} questions</span>
       </div>
 
       <section className="transcript">
-        <div className="transcript-label">📝 Transcription</div>
+        <div className="transcript-label">
+          <TranscriptIcon size={14} /> Transcription
+        </div>
         <div className="transcript-text">
           {session.transcription || 'No transcription for this session.'}
         </div>
@@ -75,12 +84,14 @@ export default function SessionView() {
 
       <section className="questions-panel">
         <div className="section-head">
-          <h2>❓ Questions</h2>
+          <h2>Questions</h2>
           <span className="count">{session.questions.length}</span>
         </div>
         {session.questions.length === 0 ? (
           <div className="empty-state">
-            <div className="icon">💡</div>
+            <div className="icon">
+              <QuestionIcon size={30} />
+            </div>
             <div className="title">No questions</div>
             <div className="hint">No questions were detected in this conversation.</div>
           </div>

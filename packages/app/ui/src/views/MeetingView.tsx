@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   analyzeMeeting,
-  fetchMeetingAnalysis,
   fetchMeetingAnalyses,
+  fetchMeetingAnalysis,
   fetchPersonas,
   fetchSessions,
 } from '../api/client';
+import { AlertIcon, CheckIcon, ClockIcon, LibraryIcon, SpinnerIcon } from '../components/Icons';
+import ScoreGauge from '../components/ScoreGauge';
 import type {
   MeetingAnalysis,
   MeetingAnalysisStatus,
+  MeetingMetric,
   Persona,
   SessionSummary,
 } from '../types';
@@ -42,6 +45,12 @@ function scoreColor(score: number): string {
   if (score >= 80) return 'good';
   if (score >= 50) return 'mid';
   return 'low';
+}
+
+function overallScore(metrics: MeetingMetric[]): number {
+  if (metrics.length === 0) return 0;
+  const sum = metrics.reduce((acc, m) => acc + m.score, 0);
+  return Math.round(sum / metrics.length);
 }
 
 function personaLabel(
@@ -184,11 +193,11 @@ export default function MeetingView() {
   const unanalyzed = sessions.filter((s) => !analyzedIds.has(s.sessionId));
   const options = selectedPersona ? sessions : unanalyzed;
 
-  const statusIcon = (status: MeetingAnalysisStatus): string => {
-    if (status === 'running') return '◌';
-    if (status === 'pending') return '◷';
-    if (status === 'completed') return '✓';
-    return '!';
+  const statusIcon = (status: MeetingAnalysisStatus) => {
+    if (status === 'running') return <SpinnerIcon size={16} />;
+    if (status === 'pending') return <ClockIcon size={16} />;
+    if (status === 'completed') return <CheckIcon size={16} />;
+    return <AlertIcon size={16} />;
   };
 
   return (
@@ -280,7 +289,10 @@ export default function MeetingView() {
         )}
         {error && (
           <div className="analyze-error">
-            <span className="status-icon">!</span> {error}
+            <span className="status-icon">
+              <AlertIcon size={15} />
+            </span>{' '}
+            {error}
           </div>
         )}
       </section>
@@ -292,12 +304,16 @@ export default function MeetingView() {
         </div>
         {dataLoading ? (
           <div className="empty-state">
-            <div className="icon spinner" />
+            <div className="icon">
+              <SpinnerIcon size={30} />
+            </div>
             <div className="title">Loading analyses…</div>
           </div>
         ) : analyses.length === 0 ? (
           <div className="empty-state">
-            <div className="icon">🗂️</div>
+            <div className="icon">
+              <LibraryIcon size={30} />
+            </div>
             <div className="title">No analyses yet</div>
             <div className="hint">Completed meeting analyses will appear here.</div>
           </div>
@@ -320,7 +336,6 @@ export default function MeetingView() {
                   </div>
                   <div className="history-meta">
                     <span>{personaLabel(personas, a.persona, a.personaContext)}</span>
-                    {a.summary && <span className="history-summary">{a.summary}</span>}
                   </div>
                 </button>
               ))}
@@ -349,10 +364,19 @@ export default function MeetingView() {
 
           {analysis.status === 'completed' && (
             <>
-              {analysis.summary && (
-                <div className="meeting-summary">
-                  <h3>Summary</h3>
-                  <p>{analysis.summary}</p>
+              {analysis.metrics.length > 0 && (
+                <div className="overall-card">
+                  <ScoreGauge score={overallScore(analysis.metrics)} size={88} />
+                  <div className="overall-body">
+                    <span className="overall-label">Overall score</span>
+                    <span className="overall-value">
+                      {overallScore(analysis.metrics)}
+                      <span className="overall-max">/100</span>
+                    </span>
+                    <p className="overall-note">
+                      Average across {analysis.metrics.length} dimensions.
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -364,13 +388,10 @@ export default function MeetingView() {
                         <span className="metric-label">{m.label}</span>
                         <span className={`metric-score ${scoreColor(m.score)}`}>{m.score}</span>
                       </div>
-                      <div className="metric-bar">
-                        <div
-                          className={`metric-fill ${scoreColor(m.score)}`}
-                          style={{ width: `${m.score}%` }}
-                        />
+                      <div className="metric-gauge-row">
+                        <ScoreGauge score={m.score} size={56} />
+                        <p className="metric-summary">{m.summary}</p>
                       </div>
-                      <p className="metric-summary">{m.summary}</p>
                       {m.evidence.length > 0 && (
                         <ul className="metric-evidence">
                           {m.evidence.map((e, i) => (
@@ -380,17 +401,6 @@ export default function MeetingView() {
                       )}
                     </div>
                   ))}
-                </div>
-              )}
-
-              {analysis.recommendations.length > 0 && (
-                <div className="meeting-recommendations">
-                  <h3>Recommendations</h3>
-                  <ul>
-                    {analysis.recommendations.map((r, i) => (
-                      <li key={i}>{r}</li>
-                    ))}
-                  </ul>
                 </div>
               )}
             </>

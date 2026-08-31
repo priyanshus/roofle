@@ -4,7 +4,7 @@ import type { LlmConfig } from '../config.js';
 import { createChatModel } from '../llm/factory.js';
 
 // Runs the meeting-analysis graph over a full session transcription and
-// returns a dashboard-ready report. This is a separate agent from the
+// returns scored metrics for the dashboard. This is a separate agent from the
 // questions pipeline; it does not reuse its prompts or graph.
 export class MeetingAnalyst {
   private readonly graph: ReturnType<typeof buildMeetingGraph>;
@@ -18,20 +18,14 @@ export class MeetingAnalyst {
     persona?: string,
     personaContext?: string
   ): Promise<{
-    summary: string;
     metrics: MeetingAnalysis['metrics'];
-    turns: MeetingAnalysis['turns'];
-    recommendations: string[];
     persona?: string;
     personaContext?: string;
   }> {
     const result = await this.graph.invoke({ transcription, persona, personaContext });
 
     return {
-      summary: result.summary,
       metrics: result.metrics,
-      turns: result.turns,
-      recommendations: result.recommendations,
       persona,
       personaContext,
     };
