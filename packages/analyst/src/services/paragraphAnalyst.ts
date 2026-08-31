@@ -2,10 +2,15 @@ import { buildGraph } from '../agents/questions/graph.js';
 import type { LlmConfig } from '../config.js';
 import { createChatModel } from '../llm/factory.js';
 
+export interface ResolvedQuestion {
+  id: number;
+  reason: string;
+}
+
 export interface AnalysisResult {
   questions: string[];
-  answeredIds: number[];
-  staleIds: number[];
+  answered: ResolvedQuestion[];
+  stale: ResolvedQuestion[];
 }
 
 // Runs the three-agent graph over the new transcription delta and the
@@ -35,8 +40,8 @@ export class ParagraphAnalyst {
 
     return {
       questions: result.validatedQuestions,
-      answeredIds: result.answeredIds,
-      staleIds: result.staleIds,
+      answered: result.answered,
+      stale: result.stale,
     };
   }
 }

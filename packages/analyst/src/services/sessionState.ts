@@ -1,6 +1,6 @@
 import type { SqliteClient } from '../db/index.js';
 import type { AnalysisWorker } from './analysisWorker.js';
-import type { ParagraphAnalyst } from './paragraphAnalyst.js';
+import type { ParagraphAnalyst, ResolvedQuestion } from './paragraphAnalyst.js';
 
 const STATE_ACCUMULATING = 'accumulating';
 const STATE_ANALYZING = 'analyzing';
@@ -23,8 +23,8 @@ export interface SessionScheduler {
     sessionId: string;
     source: string;
     newQuestions: { id: number; question: string }[];
-    answeredIds: number[];
-    staleIds: number[];
+    answered: ResolvedQuestion[];
+    stale: ResolvedQuestion[];
   }) => void;
   getContext(sessionId: string, source: string): { context: string; contextLabel: string };
   getLabel(source: string): string;
@@ -110,18 +110,18 @@ export class SessionState {
 
   onResult(result: {
     questions: string[];
-    answeredIds: number[];
-    staleIds: number[];
+    answered: ResolvedQuestion[];
+    stale: ResolvedQuestion[];
   }): void {
     this.lastAnalyzedLength = this.text.length;
 
-    const { questions, answeredIds, staleIds } = result;
+    const { questions, answered, stale } = result;
 
-    for (const id of answeredIds) {
-      this.scheduler.db.updateQuestionStatus(id, STATUS_ANSWERED);
+    for (const { id, reason } of answered) {
+      this.scheduler.db.resolveQuestion(id, STATUS_ANSWERED, reason);
     }
-    for (const id of staleIds) {
-      this.scheduler.db.updateQuestionStatus(id, STATUS_STALE);
+    for (const { id, reason } of stale) {
+      this.scheduler.db.resolveQuestion(id, STATUS_STALE, reason);
     }
 
     const newIds = this.scheduler.db.insertQuestions(this.sessionId, this.source, questions);
@@ -130,8 +130,8 @@ export class SessionState {
       sessionId: this.sessionId,
       source: this.source,
       newQuestions: questions.map((question, i) => ({ id: newIds[i], question })),
-      answeredIds,
-      staleIds,
+      answered,
+      stale,
     });
 
     this.state = STATE_COOLDOWN;

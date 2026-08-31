@@ -31,6 +31,8 @@ export interface QuestionEvent {
   readonly id: number;
   readonly question: string;
   readonly status: QuestionStatus;
+  /** Minimal reason: the answer, or why the question is stale. Open questions omit it. */
+  readonly reason?: string;
 }
 
 /** A live (still-updating) transcription segment for the subtitle UI. */
@@ -112,6 +114,8 @@ export interface SessionQuestion {
   readonly status: QuestionStatus;
   readonly source: string;
   readonly createdAt: string;
+  /** Minimal reason: the answer, or why the question is stale. Open questions omit it. */
+  readonly reason?: string;
 }
 
 /** Full detail for a single session: transcription + questions. */

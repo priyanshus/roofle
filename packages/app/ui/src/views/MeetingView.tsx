@@ -185,6 +185,12 @@ export default function MeetingView() {
     setAnalysis(null);
   };
 
+  // Brings the analyze panel into view and focuses the conversation select.
+  const focusAnalyze = () => {
+    document.getElementById('session-select')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('session-select')?.focus();
+  };
+
   const isActive = (a: MeetingAnalysis) =>
     analysis?.sessionId === a.sessionId &&
     analysis?.persona === a.persona &&
@@ -316,6 +322,9 @@ export default function MeetingView() {
             </div>
             <div className="title">No analyses yet</div>
             <div className="hint">Completed meeting analyses will appear here.</div>
+            <button className="btn empty-action" onClick={focusAnalyze}>
+              Analyze a conversation
+            </button>
           </div>
         ) : (
           <div className="history-list">

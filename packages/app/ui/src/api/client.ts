@@ -1,4 +1,4 @@
-import type { MeetingAnalysis, Persona, SessionDetail, SessionSummary } from '../types';
+import type { CaptureState, MeetingAnalysis, Persona, SessionDetail, SessionSummary } from '../types';
 
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
@@ -59,4 +59,28 @@ export function analyzeMeeting(
 
 export function fetchPersonas(): Promise<{ personas: Persona[] }> {
   return getJson('/api/personas');
+}
+
+export function fetchCaptureState(): Promise<{ state: CaptureState; sessionId: string }> {
+  return getJson('/api/capture/state');
+}
+
+export function startCapture(): Promise<{ state: CaptureState }> {
+  return postJson('/api/capture/start');
+}
+
+export function stopCapture(): Promise<{ state: CaptureState }> {
+  return postJson('/api/capture/stop');
+}
+
+export function pauseCapture(): Promise<{ state: CaptureState }> {
+  return postJson('/api/capture/pause');
+}
+
+export function resumeCapture(): Promise<{ state: CaptureState }> {
+  return postJson('/api/capture/resume');
+}
+
+export function newSession(): Promise<{ state: CaptureState; sessionId: string }> {
+  return postJson('/api/capture/session');
 }

@@ -15,6 +15,7 @@ export default function SessionView() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [onlyOpen, setOnlyOpen] = useState(false);
 
   useEffect(() => {
     if (!sessionId) return;
@@ -60,6 +61,10 @@ export default function SessionView() {
     );
   }
 
+  const visibleQuestions = onlyOpen
+    ? session.questions.filter((q) => q.status === 'open')
+    : session.questions;
+
   return (
     <div className="content">
       <div className="back-link">
@@ -77,7 +82,7 @@ export default function SessionView() {
         <div className="transcript-label">
           <TranscriptIcon size={14} /> Transcription
         </div>
-        <div className="transcript-text">
+        <div className="transcript-text transcript-scroll">
           {session.transcription || 'No transcription for this session.'}
         </div>
       </section>
@@ -85,19 +90,30 @@ export default function SessionView() {
       <section className="questions-panel">
         <div className="section-head">
           <h2>Questions</h2>
-          <span className="count">{session.questions.length}</span>
+          <button
+            className={`filter-toggle ${onlyOpen ? 'active' : ''}`}
+            onClick={() => setOnlyOpen((v) => !v)}
+            title="Show only open questions"
+          >
+            Open only
+          </button>
+          <span className="count">{visibleQuestions.length}</span>
         </div>
-        {session.questions.length === 0 ? (
+        {visibleQuestions.length === 0 ? (
           <div className="empty-state">
             <div className="icon">
               <QuestionIcon size={30} />
             </div>
             <div className="title">No questions</div>
-            <div className="hint">No questions were detected in this conversation.</div>
+            <div className="hint">
+              {onlyOpen && session.questions.length > 0
+                ? 'All questions are answered or stale. Turn off “Open only” to see them.'
+                : 'No questions were detected in this conversation.'}
+            </div>
           </div>
         ) : (
           <div className="questions-list">
-            {session.questions.map((q) => (
+            {visibleQuestions.map((q) => (
               <QuestionCard key={q.id} question={q} />
             ))}
           </div>

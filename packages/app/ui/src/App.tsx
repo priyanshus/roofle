@@ -7,7 +7,7 @@ import SessionView from './views/SessionView';
 import { useLiveConnection } from './ws/useLiveConnection';
 
 export default function App() {
-  const { state, clearAll } = useLiveConnection();
+  const { state, clearAll, start, stop, pause, resume, newSession } = useLiveConnection();
 
   return (
     <div className="app">
@@ -47,7 +47,20 @@ export default function App() {
 
       <main className="main">
         <Routes>
-          <Route path="/" element={<LiveView live={state} onClear={clearAll} />} />
+          <Route
+            path="/"
+            element={
+              <LiveView
+                live={state}
+                onClear={clearAll}
+                onStart={start}
+                onStop={stop}
+                onPause={pause}
+                onResume={resume}
+                onNewSession={newSession}
+              />
+            }
+          />
           <Route path="/library" element={<LibraryView />} />
           <Route path="/sessions/:sessionId" element={<SessionView />} />
           <Route path="/meetings" element={<MeetingView />} />

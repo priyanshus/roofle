@@ -67,6 +67,10 @@ function migrate(db: DatabaseSync): void {
     db.exec(`ALTER TABLE questions ADD COLUMN status TEXT NOT NULL DEFAULT 'open'`);
   }
 
+  if (!questionCols.includes('reason')) {
+    db.exec(`ALTER TABLE questions ADD COLUMN reason TEXT`);
+  }
+
   const meetingCols = db
     .prepare(`PRAGMA table_info(meeting_analyses)`)
     .all()

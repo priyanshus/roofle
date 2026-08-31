@@ -8,6 +8,8 @@ import { AudioSource, type AppConfig, type TimestampedAudioFrame } from '../type
 
 export interface AudioStreamingAppOptions {
   readonly config: AppConfig;
+  // Stable id for the current transcription session. Defaults to a fresh one.
+  readonly sessionId?: string;
   // Forwarded to the UI for live subtitles.
   readonly onStt: (message: SttMessage, latencyMs: number | undefined, source: string) => void;
   // Forwarded to the analyst for paragraph building + question generation.
@@ -16,19 +18,21 @@ export interface AudioStreamingAppOptions {
 
 export class AudioStreamingApp {
   private readonly config: AppConfig;
-  private readonly engine: AudioCaptureEngine;
   private readonly metrics: MetricsTracker;
   private readonly onStt: AudioStreamingAppOptions['onStt'];
   private readonly onTranscription: AudioStreamingAppOptions['onTranscription'];
-  private readonly pipelines: SourcePipeline[] = [];
-  private readonly wsClients: SttWebSocketClient[] = [];
   private readonly echoSuppressor: EchoSuppressor;
+  private readonly sessionId: string;
+
+  private engine: AudioCaptureEngine | null = null;
+  private pipelines: SourcePipeline[] = [];
+  private wsClients: SttWebSocketClient[] = [];
+  private built = false;
   private running = false;
+  private paused = false;
   private metricsTimer: NodeJS.Timeout | null = null;
   private lastSentCaptureMs = 0;
   private suppressedMicFrames = 0;
-  // Stable per app run; embeds the start time so each session is unique.
-  private readonly sessionId = `conv-${Date.now()}`;
   // Monotonic counter of finalized transcriptions forwarded to the analyst.
   private sequence = 0;
 
@@ -36,20 +40,7 @@ export class AudioStreamingApp {
     this.config = options.config;
     this.onStt = options.onStt;
     this.onTranscription = options.onTranscription;
-
-    const bytesPerSecond = this.config.inputSampleRate * this.config.inputChannels * 4;
-    const queueMaxBytes = Math.max(1, Math.floor((bytesPerSecond * this.config.queueMaxMs) / 1000));
-
-    const chunkSizeBytes = Math.floor(
-      this.config.outputSampleRate * (this.config.chunkDurationMs / 1000) * this.config.outputChannels * 2
-    );
-
-    this.engine = new AudioCaptureEngine({
-      sampleRate: this.config.inputSampleRate,
-      channels: this.config.inputChannels,
-      captureMicrophone: this.config.captureMicrophone,
-      captureSystemAudio: this.config.captureSystemAudio,
-    });
+    this.sessionId = options.sessionId ?? `conv-${Date.now()}`;
 
     this.metrics = new MetricsTracker();
 
@@ -58,21 +49,24 @@ export class AudioStreamingApp {
       threshold: this.config.echoSuppressionThreshold,
       hangoverMs: this.config.echoSuppressionHangoverMs,
     });
-
-    this.buildPipelines(queueMaxBytes, chunkSizeBytes);
-    this.attachHandlers();
   }
 
   async start(): Promise<void> {
     if (this.running) return;
 
+    if (!this.built) {
+      this.build();
+    }
+
+    const engine = this.engine as AudioCaptureEngine;
+
     // Lock system audio routing to a single application. No arbitrary
     // fallback: if no configured hint matches, we fail loudly instead of
     // capturing from an unintended app.
     if (this.config.captureSystemAudio) {
-      const app = this.engine.pickApplication(this.config.appHints);
+      const app = engine.pickApplication(this.config.appHints);
       if (!app) {
-        const apps = this.engine.listApplications();
+        const apps = engine.listApplications();
         const names = apps.map((candidate) => candidate.applicationName).join(', ');
         throw new Error(
           `No capturable audio application matched hints [${this.config.appHints.join(', ')}]. ` +
@@ -82,13 +76,14 @@ export class AudioStreamingApp {
     }
 
     this.running = true;
+    this.paused = false;
 
     console.log(`WebSocket destination: ${this.config.wsUrl}`);
     if (this.config.captureMicrophone) {
       console.log('Capturing microphone');
     }
     if (this.config.captureSystemAudio) {
-      const app = this.engine.getSelectedApplication();
+      const app = engine.getSelectedApplication();
       console.log(`Capturing application: ${app?.applicationName} (pid: ${app?.processId})`);
     }
 
@@ -96,8 +91,8 @@ export class AudioStreamingApp {
       client.connect();
     }
 
-    const selectedApp = this.engine.getSelectedApplication();
-    this.engine.start(selectedApp?.processId ?? 0);
+    const selectedApp = engine.getSelectedApplication();
+    engine.start(selectedApp?.processId ?? 0);
 
     for (const pipeline of this.pipelines) {
       pipeline.start();
@@ -113,17 +108,35 @@ export class AudioStreamingApp {
     }
   }
 
+  // Pauses capture without tearing down the session: the engine stops feeding
+  // frames, but pipelines and STT connections stay alive so resume is instant.
+  pause(): void {
+    if (!this.running || this.paused) return;
+    this.engine?.stop();
+    this.paused = true;
+  }
+
+  // Resumes capture after a pause, reusing the already-selected application.
+  resume(): void {
+    if (!this.running || !this.paused) return;
+    const engine = this.engine as AudioCaptureEngine;
+    const selectedApp = engine.getSelectedApplication();
+    engine.start(selectedApp?.processId ?? 0);
+    this.paused = false;
+  }
+
   async stop(): Promise<void> {
     if (!this.running) return;
 
     this.running = false;
+    this.paused = false;
 
     if (this.metricsTimer) {
       clearInterval(this.metricsTimer);
       this.metricsTimer = null;
     }
 
-    this.engine.stop();
+    this.engine?.stop();
 
     for (const pipeline of this.pipelines) {
       await pipeline.stop();
@@ -133,10 +146,42 @@ export class AudioStreamingApp {
       client.close();
     }
 
-    this.engine.dispose();
+    this.engine?.dispose();
+    this.engine = null;
+    this.pipelines = [];
+    this.wsClients = [];
+    this.built = false;
 
     const snapshot = this.metrics.snapshot();
     console.log('Final metrics:', snapshot);
+  }
+
+  isRunning(): boolean {
+    return this.running;
+  }
+
+  isPaused(): boolean {
+    return this.paused;
+  }
+
+  private build(): void {
+    const bytesPerSecond = this.config.inputSampleRate * this.config.inputChannels * 4;
+    const queueMaxBytes = Math.max(1, Math.floor((bytesPerSecond * this.config.queueMaxMs) / 1000));
+
+    const chunkSizeBytes = Math.floor(
+      this.config.outputSampleRate * (this.config.chunkDurationMs / 1000) * this.config.outputChannels * 2
+    );
+
+    this.engine = new AudioCaptureEngine({
+      sampleRate: this.config.inputSampleRate,
+      channels: this.config.inputChannels,
+      captureMicrophone: this.config.captureMicrophone,
+      captureSystemAudio: this.config.captureSystemAudio,
+    });
+
+    this.buildPipelines(queueMaxBytes, chunkSizeBytes);
+    this.attachHandlers();
+    this.built = true;
   }
 
   private buildPipelines(queueMaxBytes: number, chunkSizeBytes: number): void {
@@ -187,7 +232,9 @@ export class AudioStreamingApp {
   }
 
   private attachHandlers(): void {
-    this.engine.on('audio', (frame: TimestampedAudioFrame) => {
+    const engine = this.engine as AudioCaptureEngine;
+
+    engine.on('audio', (frame: TimestampedAudioFrame) => {
       // Feed system-audio frames into the echo suppressor so it knows when the
       // speaker is active, then gate mic frames while the speaker is playing.
       if (frame.source === AudioSource.SYSTEM_AUDIO) {
@@ -203,7 +250,7 @@ export class AudioStreamingApp {
       pipeline?.push(frame);
     });
 
-    this.engine.on('error', (error: Error) => {
+    engine.on('error', (error: Error) => {
       console.error('Capture error:', error.message);
     });
 

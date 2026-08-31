@@ -13,12 +13,21 @@ const SOURCE_SYSTEM = 'system';
 const LABEL_MICROPHONE = 'Microphone (your own voice)';
 const LABEL_SYSTEM = 'Speaker (the other party)';
 
+// Shown to the agents when the microphone source has no captured text yet, so
+// they don't assume the user's voice was recorded.
+const NO_MICROPHONE_CAPTURED = 'No Microphone Captured';
+
+export interface ResolvedQuestion {
+  id: number;
+  reason: string;
+}
+
 export interface SchedulerUpdate {
   sessionId: string;
   source: string;
   newQuestions: { id: number; question: string }[];
-  answeredIds: number[];
-  staleIds: number[];
+  answered: ResolvedQuestion[];
+  stale: ResolvedQuestion[];
 }
 
 // Owns one SessionState per (sessionId, source) and a shared worker queue.
@@ -67,11 +76,15 @@ export class AnalysisScheduler implements SessionScheduler {
 
   // Returns the other source's accumulated transcription plus its label, so
   // the agents can tell which voice it is and avoid re-asking what the user
-  // has already said. Empty when the other source has no text yet.
+  // has already said. When the other source is the microphone and has no text
+  // yet, surface that explicitly so the agents don't assume it was captured.
   getContext(sessionId: string, source: string): { context: string; contextLabel: string } {
     const other = source === SOURCE_MICROPHONE ? SOURCE_SYSTEM : SOURCE_MICROPHONE;
+    const text = this.db.getParagraphText(sessionId, other) ?? '';
+    const context =
+      other === SOURCE_MICROPHONE && !text.trim() ? NO_MICROPHONE_CAPTURED : text;
     return {
-      context: this.db.getParagraphText(sessionId, other) ?? '',
+      context,
       contextLabel: this.getLabel(other),
     };
   }
@@ -94,15 +107,20 @@ export class AnalysisScheduler implements SessionScheduler {
   private handleResult(result: unknown): void {
     const { key, result: analysisResult } = result as {
       key: string;
-      result: { questions: string[]; answeredIds: number[]; staleIds: number[] };
+      result: { questions: string[]; answered: ResolvedQuestion[]; stale: ResolvedQuestion[] };
     };
     this.sessions.get(key)?.onResult(analysisResult);
   }
 
-  dispose(): void {
+  // Clears all in-memory per-session state so a new session id starts clean.
+  reset(): void {
     for (const session of this.sessions.values()) {
       session.dispose();
     }
     this.sessions.clear();
+  }
+
+  dispose(): void {
+    this.reset();
   }
 }

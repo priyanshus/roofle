@@ -91,4 +91,9 @@ export class ParagraphBuilder {
 
     return this.sessions.get(key) as SessionState;
   }
+
+  // Clears all in-memory per-session buffers so a new session id starts clean.
+  reset(): void {
+    this.sessions.clear();
+  }
 }

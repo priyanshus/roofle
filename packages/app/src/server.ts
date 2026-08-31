@@ -26,6 +26,8 @@ const MIME: Record<string, string> = {
   '.ico': 'image/x-icon',
 };
 
+type CaptureState = 'stopped' | 'running' | 'paused';
+
 class RoofleServer {
   private readonly paths: AppPaths;
   private readonly httpServer: http.Server;
@@ -34,6 +36,8 @@ class RoofleServer {
   private whisper: WhisperServer | null = null;
   private transcriber: AudioStreamingApp | null = null;
   private analyst: Analyst | null = null;
+  private captureState: CaptureState = 'stopped';
+  private sessionId = `conv-${Date.now()}`;
 
   constructor() {
     this.paths = resolvePaths();
@@ -81,12 +85,7 @@ class RoofleServer {
       onMeetingUpdate: (analysis) => this.sendMeeting(analysis),
     });
 
-    const transcriberConfig = loadTranscriberConfig(process.env);
-    this.transcriber = new AudioStreamingApp({
-      config: transcriberConfig,
-      onStt: (message, latencyMs, source) => this.sendStt(message, latencyMs, source),
-      onTranscription: (event) => this.analyst?.ingest(event),
-    });
+    this.createTranscriber();
 
     await new Promise<void>((resolve, reject) => {
       this.httpServer.once('error', reject);
@@ -101,9 +100,61 @@ class RoofleServer {
     // Give the Python server a moment to load models before capture starts.
     await this.waitForWhisper();
     this.sendStatus('ready');
+    this.sendCaptureState();
+  }
 
-    await this.transcriber.start();
-    this.sendStatus('capturing');
+  // Builds a fresh transcriber bound to the current session id. Called on boot
+  // and after each new session.
+  private createTranscriber(): void {
+    const transcriberConfig = loadTranscriberConfig(process.env);
+    this.transcriber = new AudioStreamingApp({
+      config: transcriberConfig,
+      sessionId: this.sessionId,
+      onStt: (message, latencyMs, source) => this.sendStt(message, latencyMs, source),
+      onTranscription: (event) => this.analyst?.ingest(event),
+    });
+  }
+
+  private async startCapture(): Promise<void> {
+    if (!this.transcriber) {
+      this.createTranscriber();
+    }
+    await this.transcriber?.start();
+    this.captureState = 'running';
+    this.sendCaptureState();
+  }
+
+  private async stopCapture(): Promise<void> {
+    await this.transcriber?.stop();
+    this.captureState = 'stopped';
+    this.sendCaptureState();
+  }
+
+  private pauseCapture(): void {
+    this.transcriber?.pause();
+    this.captureState = 'paused';
+    this.sendCaptureState();
+  }
+
+  private resumeCapture(): void {
+    this.transcriber?.resume();
+    this.captureState = 'running';
+    this.sendCaptureState();
+  }
+
+  // Mints a fresh session id, resets analyst in-memory state, and rebuilds the
+  // transcriber so the next capture starts a clean conversation.
+  private newSession(): void {
+    this.transcriber?.stop();
+    this.sessionId = `conv-${Date.now()}`;
+    this.analyst?.newSession();
+    this.createTranscriber();
+    this.captureState = 'stopped';
+    this.sendCaptureState();
+  }
+
+  private sendCaptureState(): void {
+    this.broadcast(WS_EVENTS.status, { state: this.captureState, detail: this.captureState });
   }
 
   private handleRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
@@ -164,6 +215,45 @@ class RoofleServer {
 
     if (req.method === 'GET' && urlPath === '/api/personas') {
       this.sendJson(res, 200, { personas: PERSONAS });
+      return true;
+    }
+
+    if (req.method === 'GET' && urlPath === '/api/capture/state') {
+      this.sendJson(res, 200, { state: this.captureState, sessionId: this.sessionId });
+      return true;
+    }
+
+    if (req.method === 'POST' && urlPath === '/api/capture/start') {
+      this.startCapture().catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        this.sendJson(res, 500, { error: message });
+      });
+      return true;
+    }
+
+    if (req.method === 'POST' && urlPath === '/api/capture/stop') {
+      this.stopCapture().catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        this.sendJson(res, 500, { error: message });
+      });
+      return true;
+    }
+
+    if (req.method === 'POST' && urlPath === '/api/capture/pause') {
+      this.pauseCapture();
+      this.sendJson(res, 200, { state: this.captureState });
+      return true;
+    }
+
+    if (req.method === 'POST' && urlPath === '/api/capture/resume') {
+      this.resumeCapture();
+      this.sendJson(res, 200, { state: this.captureState });
+      return true;
+    }
+
+    if (req.method === 'POST' && urlPath === '/api/capture/session') {
+      this.newSession();
+      this.sendJson(res, 200, { state: this.captureState, sessionId: this.sessionId });
       return true;
     }
 

@@ -1,9 +1,9 @@
 import type {
-    MeetingAnalysis,
-    Paragraph,
-    SessionDetail,
-    SessionSummary,
-    TranscriptionEvent,
+  MeetingAnalysis,
+  Paragraph,
+  SessionDetail,
+  SessionSummary,
+  TranscriptionEvent,
 } from '@roofle/shared';
 import { Connection } from './connection.js';
 import { MeetingAnalysisRepository } from './meetingAnalysisRepository.js';
@@ -51,12 +51,12 @@ export class SqliteClient {
     return this.questions.getOpenQuestions(sessionId, source);
   }
 
-  getQuestionsByIds(ids: number[]): { id: number; question: string }[] {
+  getQuestionsByIds(ids: number[]): { id: number; question: string; reason: string | null }[] {
     return this.questions.getQuestionsByIds(ids);
   }
 
-  updateQuestionStatus(id: number, status: string): void {
-    this.questions.updateQuestionStatus(id, status);
+  resolveQuestion(id: number, status: string, reason: string): void {
+    this.questions.resolveQuestion(id, status, reason);
   }
 
   touchSession(sessionId: string): void {

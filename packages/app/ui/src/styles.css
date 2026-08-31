@@ -35,6 +35,13 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Visible keyboard focus on every interactive control. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 html, body, #root { height: 100%; }
 
 body {
@@ -144,6 +151,14 @@ body {
   50% { opacity: 0.4; }
 }
 
+/* Respect users who prefer reduced motion: disable all animation/transition. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 .latency {
   font-variant-numeric: tabular-nums;
   color: var(--ink-faint);
@@ -168,6 +183,64 @@ body {
   margin: 0 auto;
   width: 100%;
 }
+
+/* ---------- Capture bar ---------- */
+.capture-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  flex-shrink: 0;
+}
+
+.capture-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: all 0.15s ease;
+}
+.capture-btn:hover { border-color: var(--line-strong); color: var(--ink); background: var(--card-2); }
+.capture-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.capture-btn.primary:hover { background: var(--accent-deep); border-color: var(--accent-deep); }
+.capture-btn.danger { color: var(--red); }
+.capture-btn.danger:hover { border-color: rgba(178, 58, 46, 0.4); color: var(--red); background: var(--red-soft); }
+
+.capture-state {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--card-2);
+  color: var(--ink-faint);
+}
+.capture-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-faint);
+}
+.capture-state.running { background: var(--green-soft); color: var(--green); }
+.capture-state.running .capture-dot { background: var(--green); box-shadow: 0 0 0 3px var(--green-soft); animation: pulse 1.2s infinite; }
+.capture-state.paused { background: var(--amber-soft); color: var(--amber); }
+.capture-state.paused .capture-dot { background: var(--amber); box-shadow: 0 0 0 3px var(--amber-soft); }
 
 /* ---------- Toolbar ---------- */
 .toolbar {
@@ -316,6 +389,28 @@ body {
 }
 
 .question .q-text { font-size: 15.5px; line-height: 1.6; color: var(--ink); margin-bottom: 12px; }
+
+.question .q-reason {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 9px 12px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--line-strong);
+  background: var(--card-2);
+  color: var(--ink-soft);
+}
+.question .q-reason.answered { border-left-color: var(--green); background: var(--green-soft); color: var(--green); }
+.question .q-reason.stale { border-left-color: var(--ink-faint); background: var(--card-2); color: var(--ink-soft); }
+.question .q-reason-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-right: 8px;
+  opacity: 0.75;
+}
+
 .question .q-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-faint); }
 
 .question .q-status {
@@ -331,6 +426,22 @@ body {
 .question .q-status.stale { background: var(--card-2); color: var(--ink-faint); }
 
 .question .q-source { margin-left: auto; }
+
+.filter-toggle {
+  margin-left: auto;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: all 0.15s ease;
+}
+.filter-toggle:hover { border-color: var(--line-strong); color: var(--ink); }
+.filter-toggle.active { background: var(--accent-soft); border-color: rgba(192, 86, 47, 0.35); color: var(--accent-deep); }
 
 /* ---------- Empty state ---------- */
 .empty-state {
@@ -349,6 +460,7 @@ body {
 .empty-state .icon { font-size: 30px; opacity: 0.7; }
 .empty-state .title { font-size: 14px; font-weight: 600; color: var(--ink-soft); }
 .empty-state .hint { font-size: 12.5px; }
+.empty-action { margin-top: 4px; }
 
 /* ---------- Transcripts ---------- */
 .transcripts { display: flex; flex-direction: column; gap: 16px; }
@@ -386,6 +498,13 @@ body {
   color: var(--ink);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* Scrollable, fixed-height transcription box (session detail view). */
+.transcript-scroll {
+  height: 300px;
+  overflow-y: auto;
+  padding-right: 6px;
 }
 
 /* ---------- Library ---------- */

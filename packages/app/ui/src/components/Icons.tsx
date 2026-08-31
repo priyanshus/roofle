@@ -128,3 +128,35 @@ export function SpinnerIcon({ size = 18 }: IconProps) {
     </svg>
   );
 }
+
+export function PlayIcon({ size = 18 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <path d="M7 5.5v13l11-6.5-11-6.5Z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function PauseIcon({ size = 18 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <path d="M8 5.5v13M16 5.5v13" />
+    </svg>
+  );
+}
+
+export function StopIcon({ size = 18 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <rect x="6.5" y="6.5" width="11" height="11" rx="1.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function PlusIcon({ size = 18 }: IconProps) {
+  return (
+    <svg {...base(size)} aria-hidden="true">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}

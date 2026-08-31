@@ -1,8 +1,9 @@
 import type { DatabaseSync } from 'node:sqlite';
 
-interface QuestionRow {
+export interface QuestionRow {
   readonly id: number;
   readonly question: string;
+  readonly reason: string | null;
 }
 
 // Persists and queries the clarifying questions surfaced for a session.
@@ -41,8 +42,8 @@ export class QuestionRepository {
       .all(sessionId, source) as QuestionRow[];
   }
 
-  // Returns question text for the given ids, so resolved questions can be
-  // published with their content.
+  // Returns question text + reason for the given ids, so resolved questions can
+  // be published with their content.
   getQuestionsByIds(ids: number[]): QuestionRow[] {
     if (ids.length === 0) {
       return [];
@@ -50,12 +51,15 @@ export class QuestionRepository {
 
     const placeholders = ids.map(() => '?').join(',');
     return this.db
-      .prepare(`SELECT id, question FROM questions WHERE id IN (${placeholders})`)
+      .prepare(`SELECT id, question, reason FROM questions WHERE id IN (${placeholders})`)
       .all(...ids) as QuestionRow[];
   }
 
-  // One-way transition: open -> answered/stale. Never re-opens a question.
-  updateQuestionStatus(id: number, status: string): void {
-    this.db.prepare(`UPDATE questions SET status = ? WHERE id = ?`).run(status, id);
+  // One-way transition: open -> answered/stale, storing the resolution reason.
+  // Never re-opens a question.
+  resolveQuestion(id: number, status: string, reason: string): void {
+    this.db
+      .prepare(`UPDATE questions SET status = ?, reason = ? WHERE id = ?`)
+      .run(status, reason, id);
   }
 }

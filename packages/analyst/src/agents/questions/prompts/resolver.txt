@@ -35,5 +35,10 @@ RULES:
 - Never return a question id that was not in the open list you were given.
 - Return empty arrays when nothing is resolved.
 
-Return the ids of resolved questions in `answeredIds` and `staleIds`. Leave
-everything else open.
+Return resolved questions in `answered` and `stale`. Each entry must carry the
+question `id` and a `reason` in the fewest words possible:
+- For ANSWERED, `reason` is the answer itself, quoted from the transcription
+  (e.g. "Q4: delivered by Friday").
+- For STALE, `reason` is a short note on why it no longer matters (e.g.
+  "Q2: topic moved on").
+Leave everything else open.

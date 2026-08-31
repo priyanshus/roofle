@@ -18,6 +18,7 @@ interface QuestionDetailRow {
   readonly status: string;
   readonly source: string;
   readonly created_at: string;
+  readonly reason: string | null;
 }
 
 // Persists and queries conversation sessions and their transcription.
@@ -81,7 +82,7 @@ export class SessionRepository {
 
     const questions = this.db
       .prepare(`
-        SELECT id, question, status, source, created_at
+        SELECT id, question, status, source, created_at, reason
         FROM questions
         WHERE session_id = ?
         ORDER BY id ASC
@@ -99,6 +100,7 @@ export class SessionRepository {
         status: q.status as SessionQuestion['status'],
         source: q.source ?? '',
         createdAt: q.created_at,
+        reason: q.reason ?? undefined,
       })),
     };
   }

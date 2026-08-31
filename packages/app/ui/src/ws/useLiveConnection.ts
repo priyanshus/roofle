@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AppStatus, QuestionEvent, SttMessage } from '../types';
+import {
+  newSession as apiNewSession,
+  pauseCapture as apiPause,
+  resumeCapture as apiResume,
+  startCapture as apiStart,
+  stopCapture as apiStop,
+} from '../api/client';
+import type { AppStatus, CaptureState, QuestionEvent, SttMessage } from '../types';
 
 export interface LiveState {
   status: AppStatus;
   statusLabel: string;
   latencyMs: number | null;
+  captureState: CaptureState;
   questions: QuestionEvent[];
   transcripts: {
     microphone: { committed: string; partial: string };
@@ -21,6 +29,7 @@ const INITIAL: LiveState = {
   status: 'starting',
   statusLabel: 'Connecting…',
   latencyMs: null,
+  captureState: 'stopped',
   questions: [],
   transcripts: INITIAL_TRANSCRIPTS,
 };
@@ -128,11 +137,15 @@ export function useLiveConnection() {
       }
 
       if (data.type === 'status') {
-        const st = data.state as AppStatus;
+        const st = data.state as string;
+        if (st === 'running' || st === 'paused' || st === 'stopped') {
+          setState((s) => ({ ...s, captureState: st as CaptureState }));
+          return;
+        }
         if (st === 'starting' || st === 'loading-model') {
-          setStatus(st, data.detail ? `Loading model (${data.detail})…` : 'Loading model…');
+          setStatus(st as AppStatus, data.detail ? `Loading model (${data.detail})…` : 'Loading model…');
         } else if (st === 'ready' || st === 'capturing') {
-          setStatus(st, 'Connected');
+          setStatus(st as AppStatus, 'Connected');
         } else if (st === 'error') {
           setStatus('error', (data.detail as string) || 'Error');
         }
@@ -170,5 +183,25 @@ export function useLiveConnection() {
     }));
   }, []);
 
-  return { state, clearAll };
+  const start = useCallback(() => {
+    apiStart().catch((e: unknown) => console.error('start failed', e));
+  }, []);
+
+  const stop = useCallback(() => {
+    apiStop().catch((e: unknown) => console.error('stop failed', e));
+  }, []);
+
+  const pause = useCallback(() => {
+    apiPause().catch((e: unknown) => console.error('pause failed', e));
+  }, []);
+
+  const resume = useCallback(() => {
+    apiResume().catch((e: unknown) => console.error('resume failed', e));
+  }, []);
+
+  const newSession = useCallback(() => {
+    apiNewSession().catch((e: unknown) => console.error('new session failed', e));
+  }, []);
+
+  return { state, clearAll, start, stop, pause, resume, newSession };
 }

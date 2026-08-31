@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import CaptureBar from '../components/CaptureBar';
 import { MicIcon, QuestionIcon, SpeakerIcon, TranscriptIcon, TrashIcon } from '../components/Icons';
 import QuestionCard from '../components/QuestionCard';
 import type { LiveState } from '../ws/useLiveConnection';
@@ -6,10 +7,20 @@ import type { LiveState } from '../ws/useLiveConnection';
 interface Props {
   live: LiveState;
   onClear: () => void;
+  onStart: () => void;
+  onStop: () => void;
+  onPause: () => void;
+  onResume: () => void;
+  onNewSession: () => void;
 }
 
-export default function LiveView({ live, onClear }: Props) {
+export default function LiveView({ live, onClear, onStart, onStop, onPause, onResume, onNewSession }: Props) {
   const [showTranscript, setShowTranscript] = useState(false);
+  const [onlyOpen, setOnlyOpen] = useState(true);
+
+  const visibleQuestions = onlyOpen
+    ? live.questions.filter((q) => q.status === 'open')
+    : live.questions;
 
   const renderText = (committed: string, partial: string) => {
     const text = partial ? `${committed} ${partial}` : committed;
@@ -18,6 +29,15 @@ export default function LiveView({ live, onClear }: Props) {
 
   return (
     <div className="content">
+      <CaptureBar
+        state={live.captureState}
+        onStart={onStart}
+        onStop={onStop}
+        onPause={onPause}
+        onResume={onResume}
+        onNewSession={onNewSession}
+      />
+
       <div className="toolbar">
         <span className="group-label">Views</span>
         <button className="toggle active" disabled>
@@ -40,19 +60,37 @@ export default function LiveView({ live, onClear }: Props) {
       <section className="questions-panel">
         <div className="section-head">
           <h2>Questions</h2>
-          <span className="count">{live.questions.length}</span>
+          <button
+            className={`filter-toggle ${onlyOpen ? 'active' : ''}`}
+            onClick={() => setOnlyOpen((v) => !v)}
+            title="Show only open questions"
+          >
+            Open only
+          </button>
+          <span className="count">{visibleQuestions.length}</span>
         </div>
-        {live.questions.length === 0 ? (
+        {visibleQuestions.length === 0 ? (
           <div className="empty-state">
             <div className="icon">
               <QuestionIcon size={30} />
             </div>
-            <div className="title">No questions yet</div>
-            <div className="hint">Questions detected from the conversation will appear here.</div>
+            <div className="title">No questions</div>
+            <div className="hint">
+              {onlyOpen && live.questions.length > 0
+                ? 'All questions are answered or stale. Turn off “Open only” to see them.'
+                : live.captureState === 'stopped'
+                  ? 'Start a capture to begin detecting questions from the conversation.'
+                  : 'Questions detected from the conversation will appear here.'}
+            </div>
+            {live.captureState === 'stopped' && (
+              <button className="btn empty-action" onClick={onStart}>
+                Start capture
+              </button>
+            )}
           </div>
         ) : (
           <div className="questions-list">
-            {live.questions.map((q) => (
+            {visibleQuestions.map((q) => (
               <QuestionCard key={`${q.sessionId}:${q.id}`} question={q} />
             ))}
           </div>

@@ -58,6 +58,13 @@ export class Analyst {
     this.paragraphBuilder.add(transcription);
   }
 
+  // Clears in-memory per-session state so a new transcription session starts
+  // clean. Persisted records are keyed by session id and remain untouched.
+  newSession(): void {
+    this.scheduler.reset();
+    this.paragraphBuilder.reset();
+  }
+
   // Lists all past conversations, most recently active first.
   getSessions(): SessionSummary[] {
     return this.db.getSessions();
@@ -134,25 +141,32 @@ export class Analyst {
       sessionId: string;
       source: string;
       newQuestions: { id: number; question: string }[];
-      answeredIds: number[];
-      staleIds: number[];
+      answered: { id: number; reason: string }[];
+      stale: { id: number; reason: string }[];
     },
     onQuestion: (question: QuestionEvent) => void
   ): void {
-    const answered = this.db.getQuestionsByIds(update.answeredIds).map((q) => ({
-      id: q.id,
-      question: q.question,
-      status: 'answered' as const,
-    }));
-    const stale = this.db.getQuestionsByIds(update.staleIds).map((q) => ({
-      id: q.id,
-      question: q.question,
-      status: 'stale' as const,
-    }));
+    const byId = new Map(
+      this.db.getQuestionsByIds([...update.answered, ...update.stale].map((r) => r.id)).map((q) => [
+        q.id,
+        q.question,
+      ])
+    );
+
+    const resolved = (list: { id: number; reason: string }[], status: 'answered' | 'stale') =>
+      list.map(({ id, reason }) => ({
+        id,
+        question: byId.get(id) ?? '',
+        status,
+        reason,
+      }));
+    const answered = resolved(update.answered, 'answered');
+    const stale = resolved(update.stale, 'stale');
     const open = update.newQuestions.map((q) => ({
       id: q.id,
       question: q.question,
       status: 'open' as const,
+      reason: undefined as string | undefined,
     }));
 
     const events = [...open, ...answered, ...stale];
@@ -164,12 +178,13 @@ export class Analyst {
         id: event.id,
         question: event.question,
         status: event.status,
+        ...(event.reason !== undefined ? { reason: event.reason } : {}),
       });
     }
 
     console.log(
       `[questions] ${update.sessionId}:${update.source} new=${JSON.stringify(update.newQuestions)} ` +
-        `answered=${JSON.stringify(update.answeredIds)} stale=${JSON.stringify(update.staleIds)}`
+        `answered=${JSON.stringify(update.answered)} stale=${JSON.stringify(update.stale)}`
     );
   }
 

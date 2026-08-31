@@ -1,20 +1,27 @@
+import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { ChatPromptTemplate } from '@langchain/core/prompts';
+import type { Runnable } from '@langchain/core/runnables';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { z } from 'zod';
-import { ChatPromptTemplate } from '@langchain/core/prompts';
-import type { Runnable } from '@langchain/core/runnables';
-import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+const ResolvedQuestionSchema = z.object({
+  id: z.number().describe('Id of the open question being resolved'),
+  reason: z
+    .string()
+    .describe('Minimal reason: the answer itself, or why the question is stale'),
+});
+
 const ResolutionSchema = z.object({
-  answeredIds: z
-    .array(z.number())
-    .describe('Ids of open questions now answered by the new transcription'),
-  staleIds: z
-    .array(z.number())
-    .describe('Ids of open questions no longer relevant to the conversation'),
+  answered: z
+    .array(ResolvedQuestionSchema)
+    .describe('Open questions now answered by the new transcription'),
+  stale: z
+    .array(ResolvedQuestionSchema)
+    .describe('Open questions no longer relevant to the conversation'),
 });
 
 const SYSTEM_PROMPT = fs.readFileSync(
@@ -44,7 +51,7 @@ export class Resolver {
       contextLabel: string;
       questions: string;
     },
-    { answeredIds: number[]; staleIds: number[] }
+    { answered: { id: number; reason: string }[]; stale: { id: number; reason: string }[] }
   >;
 
   constructor(model: BaseChatModel) {
@@ -58,7 +65,7 @@ export class Resolver {
         contextLabel: string;
         questions: string;
       },
-      { answeredIds: number[]; staleIds: number[] }
+      { answered: { id: number; reason: string }[]; stale: { id: number; reason: string }[] }
     >;
   }
 
@@ -68,8 +75,11 @@ export class Resolver {
     context: string;
     contextLabel: string;
     openQuestions: { id: number; question: string }[];
-  }): Promise<{ answeredIds: number[]; staleIds: number[] }> {
-    const { answeredIds, staleIds } = await this.chain.invoke({
+  }): Promise<{
+    answered: { id: number; reason: string }[];
+    stale: { id: number; reason: string }[];
+  }> {
+    const { answered, stale } = await this.chain.invoke({
       paragraph: state.paragraph,
       sourceLabel: state.sourceLabel,
       context: state.context,
@@ -77,6 +87,6 @@ export class Resolver {
       questions: state.openQuestions.map((q) => `${q.id}: ${q.question}`).join('\n'),
     });
 
-    return { answeredIds, staleIds };
+    return { answered, stale };
   }
 }

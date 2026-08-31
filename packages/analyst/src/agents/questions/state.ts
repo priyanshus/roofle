@@ -30,7 +30,13 @@ export const AgentState = Annotation.Root({
     default: () => [],
   }),
 
-  // Open question ids resolved by the resolver.
-  answeredIds: Annotation<number[]>({ reducer: (a, b) => b ?? a, default: () => [] }),
-  staleIds: Annotation<number[]>({ reducer: (a, b) => b ?? a, default: () => [] }),
+  // Open questions resolved by the resolver, each with a minimal reason.
+  answered: Annotation<{ id: number; reason: string }[]>({
+    reducer: (a, b) => b ?? a,
+    default: () => [],
+  }),
+  stale: Annotation<{ id: number; reason: string }[]>({
+    reducer: (a, b) => b ?? a,
+    default: () => [],
+  }),
 });

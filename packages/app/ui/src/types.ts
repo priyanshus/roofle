@@ -3,12 +3,16 @@
 
 export type QuestionStatus = 'open' | 'answered' | 'stale';
 
+// Live capture lifecycle pushed by the server.
+export type CaptureState = 'stopped' | 'running' | 'paused';
+
 export interface QuestionEvent {
   readonly sessionId: string;
   readonly source: string;
   readonly id: number;
   readonly question: string;
   readonly status: QuestionStatus;
+  readonly reason?: string;
 }
 
 export interface SessionSummary {
@@ -24,6 +28,7 @@ export interface SessionQuestion {
   readonly status: QuestionStatus;
   readonly source: string;
   readonly createdAt: string;
+  readonly reason?: string;
 }
 
 export interface SessionDetail {

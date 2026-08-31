@@ -69,6 +69,9 @@ export default function LibraryView() {
           </div>
           <div className="title">No conversations yet</div>
           <div className="hint">Past sessions will appear here after you capture audio.</div>
+          <Link to="/" className="btn empty-action">
+            Start a capture
+          </Link>
         </div>
       ) : (
         <div className="session-list">
