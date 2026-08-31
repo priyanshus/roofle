@@ -1,11 +1,12 @@
-import 'dotenv/config';
-import http from 'http';
-import fs from 'fs';
-import path from 'path';
-import { WebSocketServer, WebSocket } from 'ws';
 import { Analyst } from '@roofle/analyst';
-import { AudioStreamingApp, loadConfig as loadTranscriberConfig } from '@roofle/transcriber';
 import { PERSONAS, type MeetingAnalysis, type QuestionEvent, type SttMessage } from '@roofle/shared';
+import { AudioStreamingApp, loadConfig as loadTranscriberConfig } from '@roofle/transcriber';
+import 'dotenv/config';
+import fs from 'fs';
+import http from 'http';
+import path from 'path';
+import { WebSocket, WebSocketServer } from 'ws';
+import { loadAnalystConfig, resolvePaths, type AppPaths } from './config';
 import { WhisperServer } from './whisper-server';
 
 const WS_EVENTS = {
@@ -24,60 +25,6 @@ const MIME: Record<string, string> = {
   '.png': 'image/png',
   '.ico': 'image/x-icon',
 };
-
-interface AppPaths {
-  readonly whisperDir: string;
-  readonly uiDir: string;
-  readonly dbPath: string;
-}
-
-function resolvePaths(): AppPaths {
-  const whisperDir = path.resolve(__dirname, '../../transcriber/whisper');
-  // Prefer the built Vite bundle; fall back to the source UI for development.
-  const builtUi = path.resolve(__dirname, '../ui/dist');
-  const uiDir = fs.existsSync(builtUi) ? builtUi : path.resolve(__dirname, '../ui');
-  const dbPath = path.resolve(__dirname, '../../analyst/data.db');
-  return { whisperDir, uiDir, dbPath };
-}
-
-function loadAnalystConfig() {
-  const configPath = path.resolve(__dirname, '../../analyst/config.json');
-  const raw = fs.readFileSync(configPath, 'utf8');
-  const config = JSON.parse(raw) as {
-    llm: {
-      provider: 'openrouter' | 'ollama';
-      model: string;
-      baseUrl?: string;
-      apiKeyEnv?: string;
-      temperature?: number;
-    };
-    analysis: {
-      intervalMs: number;
-      minChars: number;
-      minNewChars: number;
-      cooldownMs: number;
-      concurrency: number;
-      maxRetries: number;
-    };
-  };
-
-  // Env vars override config.json so the LLM can be switched without editing
-  // the file. Only set values are applied; unset ones keep the file default.
-  if (process.env.LLM_PROVIDER) {
-    config.llm.provider = process.env.LLM_PROVIDER as 'openrouter' | 'ollama';
-  }
-  if (process.env.LLM_MODEL) {
-    config.llm.model = process.env.LLM_MODEL;
-  }
-  if (process.env.LLM_BASE_URL) {
-    config.llm.baseUrl = process.env.LLM_BASE_URL;
-  }
-  if (process.env.LLM_TEMPERATURE) {
-    config.llm.temperature = Number(process.env.LLM_TEMPERATURE);
-  }
-
-  return config;
-}
 
 class RoofleServer {
   private readonly paths: AppPaths;

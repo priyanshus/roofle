@@ -1,7 +1,7 @@
 import type { MeetingAnalysis } from '@roofle/shared';
-import { buildMeetingGraph } from '../meeting/graph.js';
-import { createChatModel } from '../llm/factory.js';
+import { buildMeetingGraph } from '../agents/report/graph.js';
 import type { LlmConfig } from '../config.js';
+import { createChatModel } from '../llm/factory.js';
 
 // Runs the meeting-analysis graph over a full session transcription and
 // returns a dashboard-ready report. This is a separate agent from the

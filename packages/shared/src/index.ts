@@ -148,6 +148,16 @@ export const PERSONAS: Persona[] = [
       { id: 'buying', label: 'Buying a Product' },
     ],
   },
+  {
+    id: 'engineering',
+    label: 'Engineering',
+    icon: '🛠️',
+    contexts: [
+      { id: 'demo', label: 'Demo' },
+      { id: 'agile-requirements', label: 'Agile Meeting (Requirements)' },
+      { id: 'knowledge-sharing', label: 'Knowledge Sharing' },
+    ],
+  },
 ];
 
 /** Lifecycle of a meeting analysis run. */

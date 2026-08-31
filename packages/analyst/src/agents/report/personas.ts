@@ -1,27 +1,15 @@
+import { PERSONAS, type Persona, type PersonaContext } from '@roofle/shared';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { PERSONAS, type Persona, type PersonaContext } from '@roofle/shared';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Maps a persona id to its prompt file names. The generic fallback (no persona)
-// uses the original evaluator/summarizer prompts.
-interface PersonaPrompts {
-  readonly evaluator: string;
-  readonly summarizer: string;
-}
-
-const PROMPT_FILES: Record<string, PersonaPrompts> = {
-  sales: {
-    evaluator: 'evaluator-sales.txt',
-    summarizer: 'summarizer-sales.txt',
-  },
-};
-
-const DEFAULT_PROMPTS: PersonaPrompts = {
-  evaluator: 'evaluator.txt',
-  summarizer: 'summarizer.txt',
+// Maps a persona id to its prompt directory. The generic fallback (no persona)
+// uses the original evaluator/summarizer prompts at the prompts root.
+const PROMPT_DIRS: Record<string, string> = {
+  sales: 'sales',
+  engineering: 'engineering',
 };
 
 // Resolves the persona + context labels for prompt injection. Falls back to a
@@ -43,11 +31,10 @@ export function resolvePersona(
 }
 
 // Loads the persona-specific prompt text, falling back to the generic prompt
-// when the persona has no dedicated file.
+// when the persona has no dedicated directory.
 export function loadPrompt(kind: 'evaluator' | 'summarizer', personaId?: string): string {
-  const file = personaId
-    ? PROMPT_FILES[personaId]?.[kind] ?? DEFAULT_PROMPTS[kind]
-    : DEFAULT_PROMPTS[kind];
+  const dir = personaId ? PROMPT_DIRS[personaId] : undefined;
+  const file = dir ? path.join(dir, `${kind}.txt`) : `${kind}.txt`;
 
   return fs.readFileSync(path.join(__dirname, 'prompts', file), 'utf8');
 }

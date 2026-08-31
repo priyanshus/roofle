@@ -1,6 +1,6 @@
-import { buildGraph } from '../agent/graph.js';
-import { createChatModel } from '../llm/factory.js';
+import { buildGraph } from '../agents/questions/graph.js';
 import type { LlmConfig } from '../config.js';
+import { createChatModel } from '../llm/factory.js';
 
 export interface AnalysisResult {
   questions: string[];

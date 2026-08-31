@@ -7,11 +7,11 @@ import type {
   TranscriptionEvent,
 } from '@roofle/shared';
 import type { AnalystConfig } from './config.js';
-import { SqliteClient } from './db/database.js';
-import { ParagraphBuilder } from './services/paragraphBuilder.js';
-import { ParagraphAnalyst } from './services/paragraphAnalyst.js';
-import { MeetingAnalyst } from './services/meetingAnalyst.js';
+import { SqliteClient } from './db/index.js';
 import { AnalysisScheduler } from './services/analysisScheduler.js';
+import { MeetingAnalyst } from './services/meetingAnalyst.js';
+import { ParagraphAnalyst } from './services/paragraphAnalyst.js';
+import { ParagraphBuilder } from './services/paragraphBuilder.js';
 
 export interface AnalystOptions {
   config: AnalystConfig;

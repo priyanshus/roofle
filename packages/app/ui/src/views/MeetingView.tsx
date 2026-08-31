@@ -6,12 +6,36 @@ import {
   fetchPersonas,
   fetchSessions,
 } from '../api/client';
-import type { MeetingAnalysis, Persona, SessionSummary } from '../types';
+import type {
+  MeetingAnalysis,
+  MeetingAnalysisStatus,
+  Persona,
+  SessionSummary,
+} from '../types';
+
+const POLL_INTERVAL_MS = 2000;
 
 function formatTime(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString();
+  return d.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function timeAgo(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const minutes = Math.round((Date.now() - d.getTime()) / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `${days}d ago`;
 }
 
 function scoreColor(score: number): string {
@@ -25,12 +49,26 @@ function personaLabel(
   personaId?: string,
   contextId?: string
 ): string {
-  if (!personaId) return 'General';
+  if (!personaId) return 'Generic';
   const p = personas.find((x) => x.id === personaId);
   if (!p) return personaId;
   if (!contextId) return p.label;
   const c = p.contexts.find((x) => x.id === contextId);
   return c ? `${p.label} — ${c.label}` : p.label;
+}
+
+const STATUS_LABEL: Record<MeetingAnalysisStatus, string> = {
+  pending: 'Queued',
+  running: 'Analyzing',
+  completed: 'Completed',
+  failed: 'Failed',
+};
+
+function statusText(a: MeetingAnalysis): string {
+  if (a.status === 'failed') return a.error ?? 'Analysis failed';
+  if (a.status === 'pending') return 'Queued for analysis';
+  if (a.status === 'running') return 'Analyzing conversation…';
+  return 'Analysis complete';
 }
 
 export default function MeetingView() {
@@ -42,7 +80,8 @@ export default function MeetingView() {
   const [selectedPersona, setSelectedPersona] = useState<string>('');
   const [selectedContext, setSelectedContext] = useState<string>('');
   const [analysis, setAnalysis] = useState<MeetingAnalysis | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
 
@@ -52,15 +91,18 @@ export default function MeetingView() {
   useEffect(() => {
     let cancelled = false;
     Promise.all([fetchSessions(), fetchMeetingAnalyses(), fetchPersonas()])
-      .then(([{ sessions: list }, { analyses }, { personas: pList }]) => {
+      .then(([{ sessions: list }, { analyses: aList }, { personas: pList }]) => {
         if (cancelled) return;
         setSessions(list);
-        setAnalyses(analyses);
-        setAnalyzedIds(new Set(analyses.map((a) => a.sessionId)));
+        setAnalyses(aList);
+        setAnalyzedIds(new Set(aList.map((a) => a.sessionId)));
         setPersonas(pList);
       })
       .catch((e: unknown) => {
         if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load data');
+      })
+      .finally(() => {
+        if (!cancelled) setDataLoading(false);
       });
     return () => {
       cancelled = true;
@@ -91,7 +133,7 @@ export default function MeetingView() {
         } catch {
           // Keep polling; transient failures are retried.
         }
-      }, 2000);
+      }, POLL_INTERVAL_MS);
     },
     [stopPolling]
   );
@@ -101,7 +143,7 @@ export default function MeetingView() {
   const handleAnalyze = async () => {
     if (!selected) return;
     setError(null);
-    setLoading(true);
+    setAnalyzing(true);
     try {
       const { analysis: next } = await analyzeMeeting(
         selected,
@@ -115,7 +157,7 @@ export default function MeetingView() {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to start analysis');
     } finally {
-      setLoading(false);
+      setAnalyzing(false);
     }
   };
 
@@ -129,166 +171,221 @@ export default function MeetingView() {
     }
   };
 
+  const handleClear = () => {
+    stopPolling();
+    setAnalysis(null);
+  };
+
+  const isActive = (a: MeetingAnalysis) =>
+    analysis?.sessionId === a.sessionId &&
+    analysis?.persona === a.persona &&
+    analysis?.personaContext === a.personaContext;
+
   const unanalyzed = sessions.filter((s) => !analyzedIds.has(s.sessionId));
-  const options = selectedPersona
-    ? sessions
-    : unanalyzed;
+  const options = selectedPersona ? sessions : unanalyzed;
+
+  const statusIcon = (status: MeetingAnalysisStatus): string => {
+    if (status === 'running') return '◌';
+    if (status === 'pending') return '◷';
+    if (status === 'completed') return '✓';
+    return '!';
+  };
 
   return (
     <div className="content">
-      <div className="section-head">
-        <h2>🤝 Meeting CoPilot</h2>
-        <span className="count">Dashboard</span>
+      <div className="page-head">
+        <div>
+          <h2>Meeting CoPilot</h2>
+          <p className="page-sub">Turn recorded conversations into scores, insights, and next steps.</p>
+        </div>
       </div>
 
       <section className="analyze-panel">
         <div className="analyze-row">
-          <select
-            className="session-select"
-            value={selected}
-            onChange={(e) => setSelected(e.target.value)}
-            disabled={loading}
-          >
-            <option value="">
-              {selectedPersona ? 'Select a conversation…' : 'Select an unanalyzed conversation…'}
-            </option>
-            {options.map((s) => (
-              <option key={s.sessionId} value={s.sessionId}>
-                {formatTime(s.startedAt)} — {s.sessionId}
+          <div className="analyze-field">
+            <label className="field-label" htmlFor="session-select">Conversation</label>
+            <select
+              id="session-select"
+              className="session-select"
+              value={selected}
+              onChange={(e) => setSelected(e.target.value)}
+              disabled={analyzing || dataLoading}
+            >
+              <option value="">
+                {selectedPersona ? 'Select a conversation…' : 'Select an unanalyzed conversation…'}
               </option>
-            ))}
-          </select>
-        </div>
+              {options
+                .slice()
+                .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
+                .map((s) => (
+                  <option key={s.sessionId} value={s.sessionId}>
+                    {formatTime(s.startedAt)}
+                  </option>
+                ))}
+            </select>
+          </div>
 
-        <div className="analyze-row">
-          <select
-            className="persona-select"
-            value={selectedPersona}
-            onChange={(e) => {
-              setSelectedPersona(e.target.value);
-              setSelectedContext('');
-            }}
-            disabled={loading}
-          >
-            <option value="">Generic (no persona)</option>
-            {personas.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.icon} {p.label}
-              </option>
-            ))}
-          </select>
-          <select
-            className="persona-select"
-            value={selectedContext}
-            onChange={(e) => setSelectedContext(e.target.value)}
-            disabled={loading || !activePersona}
-          >
-            <option value="">Select context…</option>
-            {contexts.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label}
-              </option>
-            ))}
-          </select>
+          <div className="analyze-field">
+            <label className="field-label" htmlFor="persona-select">Perspective</label>
+            <select
+              id="persona-select"
+              className="persona-select"
+              value={selectedPersona}
+              onChange={(e) => {
+                setSelectedPersona(e.target.value);
+                setSelectedContext('');
+              }}
+              disabled={analyzing || dataLoading}
+            >
+              <option value="">Generic</option>
+              {personas.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.icon} {p.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="analyze-field">
+            <label className="field-label" htmlFor="context-select">Context</label>
+            <select
+              id="context-select"
+              className="persona-select"
+              value={selectedContext}
+              onChange={(e) => setSelectedContext(e.target.value)}
+              disabled={analyzing || dataLoading || !activePersona}
+            >
+              <option value="">Any</option>
+              {contexts.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button
             className="analyze-btn"
             onClick={handleAnalyze}
-            disabled={!selected || loading}
+            disabled={!selected || analyzing}
           >
-            {loading ? 'Analyzing…' : 'Analyze'}
+            {analyzing ? 'Analyzing…' : 'Analyze'}
           </button>
         </div>
-        {error && <div className="analyze-error">{error}</div>}
+
+        {!selectedPersona && unanalyzed.length === 0 && !dataLoading && (
+          <p className="analyze-hint">
+            Every conversation has been analyzed. Pick a perspective to re-analyze any past conversation.
+          </p>
+        )}
+        {error && (
+          <div className="analyze-error">
+            <span className="status-icon">!</span> {error}
+          </div>
+        )}
       </section>
 
       <section className="history-panel">
         <div className="section-head">
-          <h2>🕘 Previously analysed</h2>
+          <h2>Recent analyses</h2>
           <span className="count">{analyses.length}</span>
         </div>
-        {analyses.length === 0 ? (
+        {dataLoading ? (
+          <div className="empty-state">
+            <div className="icon spinner" />
+            <div className="title">Loading analyses…</div>
+          </div>
+        ) : analyses.length === 0 ? (
           <div className="empty-state">
             <div className="icon">🗂️</div>
             <div className="title">No analyses yet</div>
-            <div className="hint">Past meeting analyses will appear here.</div>
+            <div className="hint">Completed meeting analyses will appear here.</div>
           </div>
         ) : (
           <div className="history-list">
-            {analyses.map((a) => (
-              <button
-                key={`${a.sessionId}:${a.persona ?? ''}:${a.personaContext ?? ''}`}
-                className="history-card"
-                onClick={() => handleOpenAnalysis(a)}
-              >
-                <div className="history-head">
-                  <span className="history-title">
-                    {formatTime(a.createdAt)} — {a.sessionId}
-                  </span>
-                  <span className={`history-status status-${a.status}`}>{a.status}</span>
-                </div>
-                <div className="history-meta">
-                  <span>{personaLabel(personas, a.persona, a.personaContext)}</span>
-                  {a.summary && <span className="history-summary">{a.summary}</span>}
-                </div>
-              </button>
-            ))}
+            {analyses
+              .slice()
+              .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+              .map((a) => (
+                <button
+                  key={`${a.sessionId}:${a.persona ?? ''}:${a.personaContext ?? ''}`}
+                  className={`history-card${isActive(a) ? ' active' : ''}`}
+                  onClick={() => handleOpenAnalysis(a)}
+                >
+                  <div className="history-head">
+                    <span className="history-title">{formatTime(a.createdAt)}</span>
+                    <span className={`history-status status-${a.status}`}>
+                      {STATUS_LABEL[a.status]}
+                    </span>
+                  </div>
+                  <div className="history-meta">
+                    <span>{personaLabel(personas, a.persona, a.personaContext)}</span>
+                    {a.summary && <span className="history-summary">{a.summary}</span>}
+                  </div>
+                </button>
+              ))}
           </div>
         )}
       </section>
 
       {analysis && (
         <section className="meeting-dashboard">
-          <div className={`meeting-status status-${analysis.status}`}>
-            {analysis.status === 'running' && '⏳ Analysis in progress…'}
-            {analysis.status === 'pending' && '⏳ Queued for analysis…'}
-            {analysis.status === 'failed' && `❌ Analysis failed: ${analysis.error ?? 'Unknown error'}`}
-            {analysis.status === 'completed' && '✅ Analysis complete'}
+          <div className="meeting-head">
+            <h2>{personaLabel(personas, analysis.persona, analysis.personaContext)}</h2>
+            <div className="meeting-actions">
+              <span className="meeting-time">{timeAgo(analysis.createdAt)}</span>
+              <button className="btn clear-btn" onClick={handleClear}>
+                Dismiss
+              </button>
+            </div>
           </div>
 
-          {analysis.persona && (
-            <div className="meeting-persona">
-              Analyzed from a{' '}
-              <strong>{personaLabel(personas, analysis.persona, analysis.personaContext)}</strong> perspective
-            </div>
-          )}
+          <div className={`meeting-status status-${analysis.status}`}>
+            <span className={`status-icon ${analysis.status === 'running' ? 'spin' : ''}`}>
+              {statusIcon(analysis.status)}
+            </span>
+            {statusText(analysis)}
+          </div>
 
           {analysis.status === 'completed' && (
             <>
               {analysis.summary && (
                 <div className="meeting-summary">
-                  <h3>📋 Summary</h3>
+                  <h3>Summary</h3>
                   <p>{analysis.summary}</p>
                 </div>
               )}
 
-              <div className="metrics-grid">
-                {analysis.metrics.map((m) => (
-                  <div key={m.key} className="metric-card">
-                    <div className="metric-head">
-                      <span className="metric-label">{m.label}</span>
-                      <span className={`metric-score ${scoreColor(m.score)}`}>{m.score}</span>
+              {analysis.metrics.length > 0 && (
+                <div className="metrics-grid">
+                  {analysis.metrics.map((m) => (
+                    <div key={m.key} className="metric-card">
+                      <div className="metric-head">
+                        <span className="metric-label">{m.label}</span>
+                        <span className={`metric-score ${scoreColor(m.score)}`}>{m.score}</span>
+                      </div>
+                      <div className="metric-bar">
+                        <div
+                          className={`metric-fill ${scoreColor(m.score)}`}
+                          style={{ width: `${m.score}%` }}
+                        />
+                      </div>
+                      <p className="metric-summary">{m.summary}</p>
+                      {m.evidence.length > 0 && (
+                        <ul className="metric-evidence">
+                          {m.evidence.map((e, i) => (
+                            <li key={i}>“{e}”</li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
-                    <div className="metric-bar">
-                      <div
-                        className={`metric-fill ${scoreColor(m.score)}`}
-                        style={{ width: `${m.score}%` }}
-                      />
-                    </div>
-                    <p className="metric-summary">{m.summary}</p>
-                    {m.evidence.length > 0 && (
-                      <ul className="metric-evidence">
-                        {m.evidence.map((e, i) => (
-                          <li key={i}>“{e}”</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
 
               {analysis.recommendations.length > 0 && (
                 <div className="meeting-recommendations">
-                  <h3>💡 Recommendations</h3>
+                  <h3>Recommendations</h3>
                   <ul>
                     {analysis.recommendations.map((r, i) => (
                       <li key={i}>{r}</li>
