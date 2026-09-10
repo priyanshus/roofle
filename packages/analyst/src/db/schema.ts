@@ -39,6 +39,12 @@ export function initSchema(db: DatabaseSync): void {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS session_summaries (
+      session_id TEXT PRIMARY KEY,
+      summary TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
       started_at TEXT NOT NULL DEFAULT (datetime('now')),

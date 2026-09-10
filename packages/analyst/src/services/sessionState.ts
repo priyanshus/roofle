@@ -28,6 +28,8 @@ export interface SessionScheduler {
   }) => void;
   getContext(sessionId: string, source: string): { context: string; contextLabel: string };
   getLabel(source: string): string;
+  getSummary(sessionId: string): string;
+  upsertSummary(sessionId: string, summary: string): void;
 }
 
 // Per-session analysis state machine.
@@ -85,12 +87,14 @@ export class SessionState {
         const openQuestions = this.scheduler.db.getOpenQuestions(this.sessionId, this.source);
         const { context, contextLabel } = this.scheduler.getContext(this.sessionId, this.source);
         const sourceLabel = this.scheduler.getLabel(this.source);
+        const prevSummary = this.scheduler.getSummary(this.sessionId);
         const result = await this.scheduler.analyst.analyze(
           delta,
           sourceLabel,
           context,
           contextLabel,
-          openQuestions
+          openQuestions,
+          prevSummary
         );
         return { key: this.key, result };
       },
@@ -112,10 +116,11 @@ export class SessionState {
     questions: string[];
     answered: ResolvedQuestion[];
     stale: ResolvedQuestion[];
+    summary: string;
   }): void {
     this.lastAnalyzedLength = this.text.length;
 
-    const { questions, answered, stale } = result;
+    const { questions, answered, stale, summary } = result;
 
     for (const { id, reason } of answered) {
       this.scheduler.db.resolveQuestion(id, STATUS_ANSWERED, reason);
@@ -125,6 +130,10 @@ export class SessionState {
     }
 
     const newIds = this.scheduler.db.insertQuestions(this.sessionId, this.source, questions);
+
+    if (summary) {
+      this.scheduler.upsertSummary(this.sessionId, summary);
+    }
 
     this.scheduler.onUpdate({
       sessionId: this.sessionId,

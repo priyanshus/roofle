@@ -15,6 +15,8 @@ export interface AnalysisConfig {
   readonly cooldownMs: number;
   readonly concurrency: number;
   readonly maxRetries: number;
+  /** When true, run the rolling-summary agent before the question agents. */
+  readonly enableSummary?: boolean;
 }
 
 /** Top-level analyst configuration. */

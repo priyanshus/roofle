@@ -11,6 +11,7 @@ import { ParagraphRepository } from './paragraphRepository.js';
 import { QuestionRepository } from './questionRepository.js';
 import { SessionRepository } from './sessionRepository.js';
 import { StreamRepository } from './streamRepository.js';
+import { SummaryRepository } from './summaryRepository.js';
 
 // Facade over the per-entity repositories. Keeps callers stable while each
 // repository owns a single entity's persistence.
@@ -21,6 +22,7 @@ export class SqliteClient {
   private readonly questions: QuestionRepository;
   private readonly sessions: SessionRepository;
   private readonly meetings: MeetingAnalysisRepository;
+  private readonly summaries: SummaryRepository;
 
   constructor(dbPath: string) {
     this.connection = new Connection(dbPath);
@@ -29,6 +31,7 @@ export class SqliteClient {
     this.questions = new QuestionRepository(this.connection.db);
     this.sessions = new SessionRepository(this.connection.db);
     this.meetings = new MeetingAnalysisRepository(this.connection.db);
+    this.summaries = new SummaryRepository(this.connection.db);
   }
 
   insertStream(transcription: TranscriptionEvent): void {
@@ -57,6 +60,14 @@ export class SqliteClient {
 
   resolveQuestion(id: number, status: string, reason: string): void {
     this.questions.resolveQuestion(id, status, reason);
+  }
+
+  upsertSummary(sessionId: string, summary: string): void {
+    this.summaries.upsertSummary(sessionId, summary);
+  }
+
+  getSummary(sessionId: string): string | null {
+    return this.summaries.getSummary(sessionId);
   }
 
   touchSession(sessionId: string): void {

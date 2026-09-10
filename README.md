@@ -48,7 +48,7 @@ Node server (localhost:8080)
  ├─ serves the HTML/JS UI over HTTP
  ├─ spawns Python WhisperX server (managed subprocess, localhost WebSocket)
  ├─ runs Transcriber capture pipeline (native ScreenCaptureKit addon)
- ├─ runs Analyst (paragraph builder + LangGraph agent + SQLite)
+ ├─ runs Analyst (paragraph builder + LangGraph agents + rolling summary + SQLite)
  └─ pushes transcriptions + questions to the browser over WebSocket
 ```
 
@@ -70,6 +70,10 @@ flowchart LR
     WSX -- partial final STT --> TC
     WS -- WebSocket broadcast --> UI
 ```
+
+For a deep dive into how transcription becomes clarifying questions — including
+the new rolling-summary agent — see
+**[Question Agent Workflow](docs/question-agent-workflow.md)**.
 
 ---
 
@@ -139,6 +143,19 @@ and fill in your values) plus a couple of JSON configs:
 - **App env** — [`packages/app/.env.example`](packages/app/.env.example) → `packages/app/.env`
 - **Transcriber env** — [`packages/transcriber/.env.example`](packages/transcriber/.env.example) → `packages/transcriber/.env`
 - **LLM + analysis** — [`packages/analyst/config.json`](packages/analyst/config.json)
+
+### Analyst config (`packages/analyst/config.json`)
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `llm.provider` / `llm.model` | `openrouter` / `gpt-4o-mini` | LLM provider and model for the agents |
+| `analysis.intervalMs` | `60000` | How often each session's paragraph is checked for analysis |
+| `analysis.minChars` | `200` | Minimum accumulated text before the analyst runs |
+| `analysis.minNewChars` | `100` | Minimum new text since the last run before the analyst runs again |
+| `analysis.cooldownMs` | `10000` | Cooldown between analysis runs per session |
+| `analysis.concurrency` | `2` | Max parallel LLM analysis jobs |
+| `analysis.maxRetries` | `2` | Retries per analysis job on failure |
+| `analysis.enableSummary` | `true` | When `true`, a summary agent maintains a rolling per-session conversation summary that is injected into the question agents so they know what was already discussed |
 - **Audio / STT / VAD** — [`packages/transcriber/config.json`](packages/transcriber/config.json)
 
 ### App env (`packages/app/.env`)

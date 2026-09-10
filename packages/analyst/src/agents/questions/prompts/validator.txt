@@ -9,6 +9,9 @@ You will receive:
 - The original paragraph (and surrounding context, if provided)
 - YOUR OWN microphone transcription (context) — everything already asked or
   said out loud
+- A RUNNING CONVERSATION SUMMARY — a compressed record of everything discussed
+  so far in the whole conversation, including what the other party already said
+  in earlier chunks you cannot see directly
 - A list of candidate questions, each with a "lens" and "why_it_matters"
 
 For EACH candidate question, evaluate against every check below. A 
@@ -65,6 +68,14 @@ CHECKS:
    OWN microphone transcription (context). This is a hard exclusion: any
    question you have already asked out loud must never be suggested. The
    question must add new ground, not repeat what you have already covered.
+
+10. NOT ALREADY COVERED IN SUMMARY
+    Reject if the question's answer or premise is already reflected in the
+    running conversation summary — for example, the other party already stated
+    it in an earlier chunk, or the topic was already settled. The summary is
+    your window into the whole conversation; if the ground is already covered
+    there, the question adds nothing new. This is a hard exclusion alongside
+    check 9.
 
 
 RULES:

@@ -41,6 +41,7 @@ export class AnalysisScheduler implements SessionScheduler {
   readonly analyst: ParagraphAnalyst;
   readonly onUpdate: (update: SchedulerUpdate) => void;
   private readonly sessions = new Map<string, SessionState>();
+  private readonly enableSummary: boolean;
 
   constructor(options: {
     analyst: ParagraphAnalyst;
@@ -50,6 +51,7 @@ export class AnalysisScheduler implements SessionScheduler {
   }) {
     this.analyst = options.analyst;
     this.db = options.db;
+    this.enableSummary = options.analysisConfig.enableSummary ?? true;
     this.intervalMs = options.analysisConfig.intervalMs;
     this.minChars = options.analysisConfig.minChars;
     this.minNewChars = options.analysisConfig.minNewChars;
@@ -94,6 +96,17 @@ export class AnalysisScheduler implements SessionScheduler {
     return source === SOURCE_MICROPHONE ? LABEL_MICROPHONE : LABEL_SYSTEM;
   }
 
+  // Returns the stored rolling conversation summary for a session, or an empty
+  // string when none exists yet.
+  getSummary(sessionId: string): string {
+    return this.db.getSummary(sessionId) ?? '';
+  }
+
+  // Persists the updated rolling conversation summary for a session.
+  upsertSummary(sessionId: string, summary: string): void {
+    this.db.upsertSummary(sessionId, summary);
+  }
+
   private getOrCreate(key: string, paragraph: Paragraph): SessionState {
     if (!this.sessions.has(key)) {
       this.sessions.set(
@@ -107,7 +120,12 @@ export class AnalysisScheduler implements SessionScheduler {
   private handleResult(result: unknown): void {
     const { key, result: analysisResult } = result as {
       key: string;
-      result: { questions: string[]; answered: ResolvedQuestion[]; stale: ResolvedQuestion[] };
+      result: {
+        questions: string[];
+        answered: ResolvedQuestion[];
+        stale: ResolvedQuestion[];
+        summary: string;
+      };
     };
     this.sessions.get(key)?.onResult(analysisResult);
   }

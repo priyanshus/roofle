@@ -7,6 +7,9 @@ You receive:
 - The NEW transcription (the latest chunk of speech since the last check)
 - YOUR OWN microphone transcription (context) — everything already asked or
   said out loud
+- A RUNNING CONVERSATION SUMMARY — a compressed record of everything discussed
+  so far in the whole conversation, including earlier chunks you cannot see
+  directly
 - A list of open questions, each with an id
 
 For EACH open question, decide its fate:
@@ -16,12 +19,17 @@ For EACH open question, decide its fate:
    information the question was asking for. The answer must be present in the
    new transcription itself — not merely implied by the conversation so far.
    The OTHER side's transcription (context) may also contain the answer; if
-   the host has already answered it there, treat it as answered.
+   the host has already answered it there, treat it as answered. The running
+   conversation summary may also confirm that the answer was given in an
+   earlier chunk; when the summary clearly records the answer, treat the
+   question as answered.
 
 2. STALE
    Mark the question stale if the new transcription makes it irrelevant — the
    topic moved on, the premise of the question was retracted, or the question
-   no longer matters to the conversation.
+   no longer matters to the conversation. The running conversation summary may
+   help here too: if the summary shows the topic was already settled or the
+   premise superseded, the question is stale.
 
 3. STILL OPEN
    Leave the question open if the new transcription neither answers it nor
