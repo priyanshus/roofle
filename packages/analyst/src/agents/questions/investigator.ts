@@ -28,7 +28,8 @@ const PROMPT = ChatPromptTemplate.fromMessages([
   ['system', SYSTEM_PROMPT],
   [
     'human',
-    '{sourceLabel} transcription:\n{paragraph}\n\n' +
+    'Running conversation summary:\n{summary}\n\n' +
+      '{sourceLabel} transcription:\n{paragraph}\n\n' +
       '{contextLabel} transcription:\n{context}',
   ],
 ]);
@@ -38,7 +39,13 @@ const PROMPT = ChatPromptTemplate.fromMessages([
 // always schema-compliant, unlike text-based JSON parsing.
 export class Investigator {
   private readonly chain: Runnable<
-    { paragraph: string; sourceLabel: string; context: string; contextLabel: string },
+    {
+      summary: string;
+      paragraph: string;
+      sourceLabel: string;
+      context: string;
+      contextLabel: string;
+    },
     { questions: string[]; reasoning: string }
   >;
 
@@ -46,18 +53,26 @@ export class Investigator {
     this.chain = PROMPT.pipe(
       model.withStructuredOutput(QuestionSchema)
     ) as unknown as Runnable<
-      { paragraph: string; sourceLabel: string; context: string; contextLabel: string },
+      {
+        summary: string;
+        paragraph: string;
+        sourceLabel: string;
+        context: string;
+        contextLabel: string;
+      },
       { questions: string[]; reasoning: string }
     >;
   }
 
   async run(state: {
+    summary: string;
     paragraph: string;
     sourceLabel: string;
     context: string;
     contextLabel: string;
   }): Promise<{ questions: string[]; reasoning: string }> {
     const { questions, reasoning } = await this.chain.invoke({
+      summary: state.summary,
       paragraph: state.paragraph,
       sourceLabel: state.sourceLabel,
       context: state.context,

@@ -11,6 +11,8 @@ export interface AnalysisResult {
   questions: string[];
   answered: ResolvedQuestion[];
   stale: ResolvedQuestion[];
+  /** The updated rolling conversation summary produced by the summary agent. */
+  summary: string;
 }
 
 // Runs the three-agent graph over the new transcription delta and the
@@ -19,16 +21,20 @@ export interface AnalysisResult {
 export class ParagraphAnalyst {
   private readonly graph: ReturnType<typeof buildGraph>;
 
-  constructor(llmConfig: LlmConfig) {
+  constructor(llmConfig: LlmConfig, enableSummary = true) {
     this.graph = buildGraph(createChatModel(llmConfig));
+    this.enableSummary = enableSummary;
   }
+
+  private readonly enableSummary: boolean;
 
   async analyze(
     paragraph: string,
     sourceLabel: string,
     context: string,
     contextLabel: string,
-    openQuestions: { id: number; question: string }[]
+    openQuestions: { id: number; question: string }[],
+    prevSummary: string
   ): Promise<AnalysisResult> {
     const result = await this.graph.invoke({
       paragraph,
@@ -36,12 +42,15 @@ export class ParagraphAnalyst {
       context,
       contextLabel,
       openQuestions,
+      enableSummary: this.enableSummary,
+      prevSummary,
     });
 
     return {
       questions: result.validatedQuestions,
       answered: result.answered,
       stale: result.stale,
+      summary: result.summary ?? '',
     };
   }
 }

@@ -1,10 +1,10 @@
+import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
+import { ChatPromptTemplate } from '@langchain/core/prompts';
+import type { Runnable } from '@langchain/core/runnables';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { z } from 'zod';
-import { ChatPromptTemplate } from '@langchain/core/prompts';
-import type { Runnable } from '@langchain/core/runnables';
-import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -23,7 +23,8 @@ const PROMPT = ChatPromptTemplate.fromMessages([
   ['system', SYSTEM_PROMPT],
   [
     'human',
-    '{sourceLabel} transcription (the other party):\n{paragraph}\n\n' +
+    'Running conversation summary:\n{summary}\n\n' +
+      '{sourceLabel} transcription (the other party):\n{paragraph}\n\n' +
       '{contextLabel} transcription (your own voice):\n{context}\n\n' +
       'Candidate questions:\n{questions}',
   ],
@@ -35,6 +36,7 @@ const PROMPT = ChatPromptTemplate.fromMessages([
 export class Validator {
   private readonly chain: Runnable<
     {
+      summary: string;
       paragraph: string;
       sourceLabel: string;
       context: string;
@@ -49,6 +51,7 @@ export class Validator {
       model.withStructuredOutput(ValidatedQuestionSchema)
     ) as unknown as Runnable<
       {
+        summary: string;
         paragraph: string;
         sourceLabel: string;
         context: string;
@@ -60,6 +63,7 @@ export class Validator {
   }
 
   async run(state: {
+    summary: string;
     paragraph: string;
     sourceLabel: string;
     context: string;
@@ -67,6 +71,7 @@ export class Validator {
     questions: string[];
   }): Promise<{ validatedQuestions: string[] }> {
     const { questions } = await this.chain.invoke({
+      summary: state.summary,
       paragraph: state.paragraph,
       sourceLabel: state.sourceLabel,
       context: state.context,

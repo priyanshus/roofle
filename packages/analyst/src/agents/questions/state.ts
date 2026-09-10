@@ -5,6 +5,18 @@ export const AgentState = Annotation.Root({
   // The new transcription chunk under investigation (delta since last analysis).
   paragraph: Annotation<string>({ reducer: (a, b) => b ?? a, default: () => '' }),
 
+  // Whether the summarizer node should run. When false, START flows directly
+  // into the investigator and summary stays empty.
+  enableSummary: Annotation<boolean>({ reducer: (a, b) => b ?? a, default: () => true }),
+
+  // The stored rolling conversation summary from the previous analysis run.
+  // Consumed by the summarizer node to produce the next summary.
+  prevSummary: Annotation<string>({ reducer: (a, b) => b ?? a, default: () => '' }),
+
+  // The freshly computed rolling conversation summary, injected into the
+  // investigator, validator, and resolver prompts as shared context.
+  summary: Annotation<string>({ reducer: (a, b) => b ?? a, default: () => '' }),
+
   // Human-readable label for the source of `paragraph` (e.g. "speaker").
   sourceLabel: Annotation<string>({ reducer: (a, b) => b ?? a, default: () => '' }),
 

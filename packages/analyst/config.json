@@ -12,6 +12,7 @@
     "minNewChars": 100,
     "cooldownMs": 10000,
     "concurrency": 2,
-    "maxRetries": 2
+    "maxRetries": 2,
+    "enableSummary": true
   }
 }

@@ -33,7 +33,8 @@ const PROMPT = ChatPromptTemplate.fromMessages([
   ['system', SYSTEM_PROMPT],
   [
     'human',
-    '{sourceLabel} transcription (the other party):\n{paragraph}\n\n' +
+    'Running conversation summary:\n{summary}\n\n' +
+      '{sourceLabel} transcription (the other party):\n{paragraph}\n\n' +
       '{contextLabel} transcription (your own voice):\n{context}\n\n' +
       'Open questions (id: question):\n{questions}',
   ],
@@ -45,6 +46,7 @@ const PROMPT = ChatPromptTemplate.fromMessages([
 export class Resolver {
   private readonly chain: Runnable<
     {
+      summary: string;
       paragraph: string;
       sourceLabel: string;
       context: string;
@@ -59,6 +61,7 @@ export class Resolver {
       model.withStructuredOutput(ResolutionSchema)
     ) as unknown as Runnable<
       {
+        summary: string;
         paragraph: string;
         sourceLabel: string;
         context: string;
@@ -70,6 +73,7 @@ export class Resolver {
   }
 
   async run(state: {
+    summary: string;
     paragraph: string;
     sourceLabel: string;
     context: string;
@@ -80,6 +84,7 @@ export class Resolver {
     stale: { id: number; reason: string }[];
   }> {
     const { answered, stale } = await this.chain.invoke({
+      summary: state.summary,
       paragraph: state.paragraph,
       sourceLabel: state.sourceLabel,
       context: state.context,

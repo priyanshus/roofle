@@ -36,7 +36,10 @@ export class Analyst {
     this.db = new SqliteClient(options.dbPath);
     this.onMeetingUpdate = options.onMeetingUpdate;
 
-    const analyst = new ParagraphAnalyst(options.config.llm);
+    const analyst = new ParagraphAnalyst(
+      options.config.llm,
+      options.config.analysis.enableSummary ?? true
+    );
     this.meetingAnalyst = new MeetingAnalyst(options.config.llm);
 
     this.scheduler = new AnalysisScheduler({
