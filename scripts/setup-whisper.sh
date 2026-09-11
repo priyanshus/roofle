@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Creates a Python virtualenv for the WhisperX server and installs its
+# Creates a Python virtualenv for the mlx-whisper server and installs its
 # requirements. Run automatically by `npm install` via the root postinstall.
 set -euo pipefail
 

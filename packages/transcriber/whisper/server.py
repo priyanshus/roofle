@@ -1,10 +1,11 @@
 """
-Python whisperx WebSocket server (no speaker diarization).
+Python mlx-whisper WebSocket server (no speaker diarization).
 
-Transcribes audio streamed from the Node app. Speaker attribution is done by
-the audio source (microphone vs system audio), which the Node app sends in the
-`start` message. Each connection is bound to one source, so every partial/final
-message carries that source's label.
+Transcribes audio streamed from the Node app using an MLX-converted Whisper
+model (Apple Silicon). Speaker attribution is done by the audio source
+(microphone vs system audio), which the Node app sends in the `start` message.
+Each connection is bound to one source, so every partial/final message carries
+that source's label.
 
 Protocol:
   - On connect, sends: { "type": "ready", "model", "sampleRate" }
@@ -40,9 +41,11 @@ from transcriber import Transcriber
 
 HOST = os.environ.get("HOST", "0.0.0.0")
 PORT = int(os.environ.get("PORT", "9000"))
-MODEL = os.environ.get("MODEL", "base")
-DEVICE = os.environ.get("DEVICE", "cpu")
-COMPUTE_TYPE = os.environ.get("COMPUTE_TYPE", "int8")
+# MODEL is an MLX-converted Whisper repo (Hugging Face Hub) or a local MLX
+# model directory. Default is the mlx-community large-v3 turbo model.
+MODEL = os.environ.get("MODEL", "mlx-community/whisper-large-v3-turbo")
+DEVICE = os.environ.get("DEVICE", "mps")
+COMPUTE_TYPE = os.environ.get("COMPUTE_TYPE", "float16")
 
 SAMPLE_RATE = 16000
 
@@ -283,7 +286,7 @@ async def main() -> None:
         compute_type=COMPUTE_TYPE,
     )
     transcriber.load()
-    print(f"Starting whisperx WebSocket server on {HOST}:{PORT}")
+    print(f"Starting mlx-whisper WebSocket server on {HOST}:{PORT}")
 
     async with websockets.serve(
         lambda ws: _handle(ws, transcriber),

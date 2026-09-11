@@ -64,9 +64,9 @@ class RoofleServer {
       serverDir: this.paths.whisperDir,
       host: '127.0.0.1',
       port: 9000,
-      model: process.env.WHISPER_MODEL ?? 'base',
-      device: process.env.WHISPER_DEVICE ?? 'cpu',
-      computeType: process.env.WHISPER_COMPUTE_TYPE ?? 'int8',
+      model: process.env.WHISPER_MODEL ?? 'mlx-community/whisper-large-v3-turbo',
+      device: process.env.WHISPER_DEVICE ?? 'mps',
+      computeType: process.env.WHISPER_COMPUTE_TYPE ?? 'float16',
       onLog: (line) => console.log(`[whisper] ${line.trim()}`),
       onExit: (code) => {
         if (code !== 0) {

@@ -19,8 +19,8 @@ Roofle is an **intelligent meeting copilot** that analyzes your conversations in
 real time and helps you improve your presentations, communication, and meetings.
 
 It captures your microphone and system audio, transcribes it **locally** with
-WhisperX, and runs an LLM analyst that surfaces clarifying questions and
-feedback in real time — all while you speak.
+Whisper (Apple-silicon MLX), and runs an LLM analyst that surfaces clarifying
+questions and feedback in real time — all while you speak.
 
 Everything runs on your machine. Your audio never leaves it.
 
@@ -46,7 +46,7 @@ WebSocket.
 ```
 Node server (localhost:8080)
  ├─ serves the HTML/JS UI over HTTP
- ├─ spawns Python WhisperX server (managed subprocess, localhost WebSocket)
+ ├─ spawns Python mlx-whisper server (managed subprocess, localhost WebSocket)
  ├─ runs Transcriber capture pipeline (native ScreenCaptureKit addon)
  ├─ runs Analyst (paragraph builder + LangGraph agents + rolling summary + SQLite)
  └─ pushes transcriptions + questions to the browser over WebSocket
@@ -61,7 +61,7 @@ flowchart LR
         AN -- question event --> WS
     end
     subgraph Python subprocess
-        WSX[WhisperX server]
+        WSX[mlx-whisper server]
     end
     subgraph Browser
         UI[HTML JS UI]
@@ -84,7 +84,7 @@ roofle/
 ├── package.json                 # npm workspaces + root scripts
 ├── packages/
 │   ├── shared/                  # typed contracts (TranscriptionEvent, QuestionEvent, SttMessage)
-│   ├── transcriber/             # audio capture + pipeline + WhisperX server
+│   ├── transcriber/             # audio capture + pipeline + mlx-whisper server
 │   ├── analyst/                 # LangGraph agent + SQLite
 │   └── app/                     # Node HTTP + WebSocket server + browser UI
 ```
@@ -97,6 +97,7 @@ roofle/
 - **Node.js ≥ 22.5** (analyst uses `node:sqlite`)
 - **Xcode Command Line Tools** (native addon)
 - **Python 3.10+** (installed automatically into a venv by `npm install`)
+- **Apple silicon (M-series)** — transcription runs on the MLX engine
 
 ---
 
@@ -104,7 +105,7 @@ roofle/
 
 ```bash
 # 1. Install everything. `npm install` compiles the native addon AND creates a
-#    Python virtualenv with the WhisperX requirements (via the postinstall hook).
+#    Python virtualenv with the mlx-whisper requirements (via the postinstall hook).
 npm install
 
 # 2. Configure the LLM provider
@@ -163,10 +164,10 @@ and fill in your values) plus a couple of JSON configs:
 | Variable | Default | Description |
 | --- | --- | --- |
 | `OPENROUTER_API_KEY` | — | API key for the LLM analyst (required unless you switch to a local provider like Ollama in `config.json`) |
-| `WHISPER_MODEL` | `base` | Whisper model size used by the Python server |
-| `WHISPER_DEVICE` | `cpu` | Device for Whisper inference (`cpu` or `cuda`) |
-| `WHISPER_COMPUTE_TYPE` | `int8` | Compute type for the model |
-| `PYTHON_BIN` | *(venv)* | Optional override for the Python interpreter used to launch the WhisperX server |
+| `WHISPER_MODEL` | `mlx-community/whisper-large-v3-turbo` | MLX-converted Whisper HF repo (or local MLX model dir) used by the Python server |
+| `WHISPER_DEVICE` | `mps` | Device for Whisper inference (`mps` on Apple silicon) |
+| `WHISPER_COMPUTE_TYPE` | `float16` | Compute type for the model (`float16` or `float32`) |
+| `PYTHON_BIN` | *(venv)* | Optional override for the Python interpreter used to launch the mlx-whisper server |
 | `CAPTURE_MICROPHONE` | `true` | Capture the microphone |
 | `CAPTURE_SYSTEM_AUDIO` | `true` | Capture system (speaker) audio |
 | `CAPTURE_APPS` | *(list)* | Comma-separated app names to capture system audio from |
@@ -175,7 +176,7 @@ and fill in your values) plus a couple of JSON configs:
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `STT_WS_URL` | `ws://127.0.0.1:9000` | WebSocket URL of the WhisperX STT server |
+| `STT_WS_URL` | `ws://127.0.0.1:9000` | WebSocket URL of the mlx-whisper STT server |
 | `STT_WS_TOKEN` | — | Optional auth token for the STT server |
 | `CAPTURE_APPS` | *(list)* | Comma-separated app names to capture |
 | `CAPTURE_MICROPHONE` / `CAPTURE_SYSTEM_AUDIO` | `true` | Toggle mic / system audio capture |
@@ -190,14 +191,21 @@ and fill in your values) plus a couple of JSON configs:
 
 ### Whisper model
 
-The model is set via `WHISPER_MODEL` (default `base`) in the app env. The Node
-server spawns the Python server with this value.
+Transcription runs on an Apple-silicon-optimized MLX build of Whisper
+(`mlx-whisper`). The model is set via `WHISPER_MODEL` (default
+`mlx-community/whisper-large-v3-turbo`) in the app env, and can be any
+MLX-converted Whisper HF repo (e.g. `mlx-community/whisper-large-v3`) or a
+local MLX model directory. The Node server spawns the Python server with this
+value, and mlx-whisper downloads the weights from the Hugging Face Hub on first
+run.
 
 ---
 
 ## ⚠️ Known limitations
 
-- Whisper alignment is hardcoded to English (`language_code="en"`).
+- Requires Apple silicon (M-series): mlx-whisper runs on the MLX engine, not
+  CPU/CUDA like the previous whisperx backend.
+- Transcription is hardcoded to English (`language="en"`).
 - The analyst uses `node:sqlite` (Node 22.5+).
 - System-audio capture requires the native ScreenCaptureKit addon and macOS
   Screen Recording permission (granted to the terminal/Node process).

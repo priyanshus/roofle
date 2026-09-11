@@ -13,7 +13,7 @@ uphold this code.
 
 1. **Fork** the repository and clone your fork.
 2. **Install dependencies** — `npm install` compiles the native addon and
-   creates the Python virtualenv with the WhisperX requirements.
+   creates the Python virtualenv with the mlx-whisper requirements.
 3. **Create a branch** for your work: `git checkout -b my-feature`.
 4. **Make your changes** and add tests where appropriate.
 5. **Run the checks** (below).
@@ -44,7 +44,7 @@ npm run build        # compile all packages
 ```
 packages/
 ├── shared/          # typed contracts shared across packages
-├── transcriber/     # audio capture + pipeline + WhisperX server
+├── transcriber/     # audio capture + pipeline + mlx-whisper server
 ├── analyst/         # LangGraph agent + SQLite
 └── app/             # Node HTTP + WebSocket server + browser UI
 ```
