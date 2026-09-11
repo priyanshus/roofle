@@ -70,6 +70,14 @@ export class SqliteClient {
     return this.summaries.getSummary(sessionId);
   }
 
+  getTitle(sessionId: string): string | null {
+    return this.summaries.getTitle(sessionId);
+  }
+
+  setTitle(sessionId: string, title: string): void {
+    this.summaries.setTitle(sessionId, title);
+  }
+
   touchSession(sessionId: string): void {
     this.sessions.touchSession(sessionId);
   }

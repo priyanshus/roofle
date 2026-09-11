@@ -97,6 +97,13 @@ export default function MeetingView() {
   const activePersona = personas.find((p) => p.id === selectedPersona);
   const contexts = activePersona?.contexts ?? [];
 
+  // Returns the generated conversation title for a session, falling back to the
+  // start time when no title is available.
+  const titleFor = (sessionId: string, fallbackIso: string): string => {
+    const session = sessions.find((s) => s.sessionId === sessionId);
+    return session?.title || formatTime(fallbackIso);
+  };
+
   useEffect(() => {
     let cancelled = false;
     Promise.all([fetchSessions(), fetchMeetingAnalyses(), fetchPersonas()])
@@ -234,7 +241,7 @@ export default function MeetingView() {
                 .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
                 .map((s) => (
                   <option key={s.sessionId} value={s.sessionId}>
-                    {formatTime(s.startedAt)}
+                    {s.title || formatTime(s.startedAt)}
                   </option>
                 ))}
             </select>
@@ -338,7 +345,7 @@ export default function MeetingView() {
                   onClick={() => handleOpenAnalysis(a)}
                 >
                   <div className="history-head">
-                    <span className="history-title">{formatTime(a.createdAt)}</span>
+                    <span className="history-title">{titleFor(a.sessionId, a.createdAt)}</span>
                     <span className={`history-status status-${a.status}`}>
                       {STATUS_LABEL[a.status]}
                     </span>

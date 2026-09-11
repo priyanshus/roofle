@@ -72,7 +72,12 @@ export class AudioCapture extends AudioSourceBase {
     return fallbackToFirst ? apps[0] ?? null : null;
   }
 
-  startCapture(processId: number, options: CaptureOptions = {}): boolean {
+  /**
+   * Start capturing system audio. When `processId` is 0 or omitted, ALL
+   * system audio is captured (every app currently playing audio on the
+   * primary display), independent of any specific application.
+   */
+  startCapture(processId: number = 0, options: CaptureOptions = {}): boolean {
     return this.start(options, processId);
   }
 
@@ -85,12 +90,9 @@ export class AudioCapture extends AudioSourceBase {
     onSample: (sample: NativeAudioSample) => void,
     processId?: number
   ): boolean {
-    if (processId === undefined) {
-      throw new Error('System audio capture requires a processId');
-    }
-
+    // A missing/zero processId requests whole-system capture (all apps).
     return this.native.startCapture(
-      processId,
+      processId ?? 0,
       {
         sampleRate: options.sampleRate ?? 48_000,
         channels: options.channels ?? 2,

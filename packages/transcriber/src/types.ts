@@ -42,7 +42,6 @@ export interface PipelineMetricsSnapshot {
 export interface AppConfig {
   readonly wsUrl: string;
   readonly wsToken?: string;
-  readonly appHints: readonly string[];
   readonly logMetrics: boolean;
   readonly chunkDurationMs: number;
   readonly inputSampleRate: number;

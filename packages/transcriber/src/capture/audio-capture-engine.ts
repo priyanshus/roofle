@@ -1,8 +1,8 @@
 import { EventEmitter } from 'events';
 import { AudioSource, type TimestampedAudioFrame } from '../types';
-import { AudioCapture, type ApplicationInfo } from './audio-capture';
-import { MicrophoneCapture } from './microphone-capture';
+import { AudioCapture } from './audio-capture';
 import type { AudioSample, CaptureOptions } from './audio-source';
+import { MicrophoneCapture } from './microphone-capture';
 
 export interface CaptureEngineOptions {
   readonly sampleRate: number;
@@ -24,7 +24,6 @@ export class AudioCaptureEngine extends EventEmitter {
   private readonly system: AudioCapture;
   private readonly mic: MicrophoneCapture;
   private readonly options: CaptureEngineOptions;
-  private selectedApp: ApplicationInfo | null = null;
 
   constructor(options: CaptureEngineOptions) {
     super();
@@ -34,29 +33,10 @@ export class AudioCaptureEngine extends EventEmitter {
     this.attachHandlers();
   }
 
-  listApplications(): ApplicationInfo[] {
-    return this.system.getAudioApps();
-  }
-
-  /**
-   * Select and lock a single application for system audio capture. Returns
-   * null when no hint matches rather than silently falling back.
-   */
-  pickApplication(hints: readonly string[]): ApplicationInfo | null {
-    this.selectedApp = this.system.selectApp(hints, false);
-    return this.selectedApp;
-  }
-
-  getSelectedApplication(): ApplicationInfo | null {
-    return this.selectedApp;
-  }
-
-  start(processId: number): void {
+  start(): void {
     if (this.options.captureSystemAudio) {
-      if (!this.selectedApp) {
-        throw new Error('No system audio application selected');
-      }
-      this.system.startCapture(processId, {
+      // Capture ALL system audio (every app), not a single selected app.
+      this.system.startCapture(0, {
         sampleRate: this.options.sampleRate,
         channels: this.options.channels,
       });
@@ -104,4 +84,5 @@ export class AudioCaptureEngine extends EventEmitter {
   }
 }
 
-export type { AudioSource, TimestampedAudioFrame, CaptureOptions };
+export type { AudioSource, CaptureOptions, TimestampedAudioFrame };
+

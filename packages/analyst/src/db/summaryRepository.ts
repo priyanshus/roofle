@@ -33,4 +33,26 @@ export class SummaryRepository {
 
     return row?.summary ?? null;
   }
+
+  // Returns the stored one-line title for a session, or null when none.
+  getTitle(sessionId: string): string | null {
+    const row = this.db
+      .prepare(`SELECT title FROM session_summaries WHERE session_id = ?`)
+      .get(sessionId) as { title: string | null } | undefined;
+
+    return row?.title ?? null;
+  }
+
+  // Persists the generated one-line title for a session. A title is always
+  // derived from a stored summary, so this is a pure UPDATE on an existing
+  // session_summaries row.
+  setTitle(sessionId: string, title: string): void {
+    this.db
+      .prepare(`
+        UPDATE session_summaries
+        SET title = ?, updated_at = datetime('now')
+        WHERE session_id = ?
+      `)
+      .run(title, sessionId);
+  }
 }

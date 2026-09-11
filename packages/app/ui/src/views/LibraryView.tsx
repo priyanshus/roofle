@@ -10,6 +10,22 @@ function formatTime(iso: string): string {
   return d.toLocaleString();
 }
 
+// Builds a readable, shareable session URL: a slugified "title + date-time"
+// followed by the real session id as a tail segment, so the server can recover
+// it. E.g. /sessions/negotiating-q3-pricing-2026-09-11-07-50-conv-123
+function sessionUrl(s: SessionSummary): string {
+  const label = s.title || 'conversation';
+  const date = new Date(s.startedAt);
+  const datePart = Number.isNaN(date.getTime())
+    ? 'unknown'
+    : date.toISOString().replace(/[:T]/g, '-').slice(0, 16);
+  const slug = `${label} ${datePart}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-+|-+$)/g, '');
+  return `/sessions/${encodeURIComponent(`${slug}-${s.sessionId}`)}`;
+}
+
 export default function LibraryView() {
   const [sessions, setSessions] = useState<SessionSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,8 +92,8 @@ export default function LibraryView() {
       ) : (
         <div className="session-list">
           {sessions.map((s) => (
-            <Link key={s.sessionId} to={`/sessions/${encodeURIComponent(s.sessionId)}`} className="session-card">
-              <div className="session-title">{formatTime(s.startedAt)}</div>
+            <Link key={s.sessionId} to={sessionUrl(s)} className="session-card">
+              <div className="session-title">{s.title || formatTime(s.startedAt)}</div>
               <div className="session-meta">
                 <span>{s.questionCount} questions</span>
                 <span className="session-id">{s.sessionId}</span>

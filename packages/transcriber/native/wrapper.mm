@@ -555,6 +555,29 @@ bool ScreenCaptureKitWrapper::startCapture(int processId, const CaptureConfig& c
         return false;
     }
 
+    SCContentFilter *filter = nil;
+
+    // Whole-system capture: when no specific application is requested
+    // (processId <= 0), capture ALL audio from every application on the
+    // primary display. `initWithDisplay:excludingWindows:` with an empty
+    // exclusion set routes the entire system mix (any app currently playing
+    // audio) to this stream. NOTE: we deliberately do NOT use
+    // `includingApplications:@[]`, because that initializer captures ONLY the
+    // listed apps — an empty list would capture no audio at all.
+    if (processId <= 0) {
+        if (capturedContent.displays.count == 0) {
+            NSLog(@"No displays available for whole-system audio capture");
+            [capturedContent release];
+            return false;
+        }
+        NSLog(@"Capturing all system audio (no application filter)");
+        filter = [[SCContentFilter alloc] initWithDisplay:capturedContent.displays.firstObject
+                                        excludingWindows:@[]];
+        success = StartStreamWithFilter(wrapper, filter, config);
+        [capturedContent release];
+        return success;
+    }
+
     // Find the application with matching process ID
     SCRunningApplication *targetApp = nil;
     for (SCRunningApplication *app in capturedContent.applications) {
@@ -570,8 +593,6 @@ bool ScreenCaptureKitWrapper::startCapture(int processId, const CaptureConfig& c
         return false;
     }
 
-    SCContentFilter *filter = nil;
-    
     // Prefer window-based capture when the app has an on-screen window - this
     // allows concurrent captures from different processes. Per Apple WWDC:
     // "When a single window filter is used, all the audio content from the

@@ -64,6 +64,15 @@ export function initSchema(db: DatabaseSync): void {
 }
 
 function migrate(db: DatabaseSync): void {
+  const summaryCols = db
+    .prepare(`PRAGMA table_info(session_summaries)`)
+    .all()
+    .map((c) => (c as { name: string }).name);
+
+  if (!summaryCols.includes('title')) {
+    db.exec(`ALTER TABLE session_summaries ADD COLUMN title TEXT`);
+  }
+
   const questionCols = db
     .prepare(`PRAGMA table_info(questions)`)
     .all()

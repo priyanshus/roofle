@@ -30,15 +30,6 @@ interface ConfigFile {
   };
 }
 
-function parseList(value: string | undefined, fallback: readonly string[]): readonly string[] {
-  if (!value) return fallback;
-  const items = value
-    .split(',')
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
-  return items.length > 0 ? items : fallback;
-}
-
 function parseBool(value: string | undefined, fallback: boolean): boolean {
   if (value === undefined) return fallback;
   const normalized = value.trim().toLowerCase();
@@ -63,7 +54,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   return {
     wsUrl: env.STT_WS_URL ?? 'ws://127.0.0.1:9000',
     wsToken: env.STT_WS_TOKEN,
-    appHints: parseList(env.CAPTURE_APPS, ['Brave Browser', 'Google Chrome', 'Safari', 'Music', 'Spotify']),
     logMetrics: parseBool(env.LOG_METRICS, false),
     chunkDurationMs: audio.chunkDurationMs ?? 20,
     inputSampleRate: audio.inputSampleRate ?? 48000,

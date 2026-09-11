@@ -126,6 +126,7 @@ class RoofleServer {
 
   private async stopCapture(): Promise<void> {
     await this.transcriber?.stop();
+    this.analyst?.finalizeSession(this.sessionId);
     this.captureState = 'stopped';
     this.sendCaptureState();
   }
@@ -146,7 +147,9 @@ class RoofleServer {
   // transcriber so the next capture starts a clean conversation.
   private newSession(): void {
     this.transcriber?.stop();
+    const previousSessionId = this.sessionId;
     this.sessionId = `conv-${Date.now()}`;
+    this.analyst?.finalizeSession(previousSessionId);
     this.analyst?.newSession();
     this.createTranscriber();
     this.captureState = 'stopped';
@@ -265,8 +268,9 @@ class RoofleServer {
 
     const sessionMatch = urlPath.match(/^\/api\/sessions\/([^/]+)$/);
     if (req.method === 'GET' && sessionMatch) {
-      const sessionId = decodeURIComponent(sessionMatch[1]);
-      const session = this.analyst?.getSession(sessionId) ?? null;
+      const segment = decodeURIComponent(sessionMatch[1]);
+      const sessionId = this.resolveSessionId(segment);
+      const session = sessionId ? (this.analyst?.getSession(sessionId) ?? null) : null;
       if (!session) {
         this.sendJson(res, 404, { error: 'Session not found' });
         return true;
@@ -322,6 +326,20 @@ class RoofleServer {
 
     this.sendJson(res, 404, { error: 'Not found' });
     return true;
+  }
+
+  // Resolves a session URL segment back to a real session id. The UI links to
+  // readable slugs ("title-date-time-conv-123"), so match by exact id or by
+  // suffix "-<id>". Session ids themselves contain dashes (conv-<timestamp>),
+  // so suffix matching against known ids is robust to any slug format.
+  private resolveSessionId(segment: string): string | null {
+    const sessions = this.analyst?.getSessions() ?? [];
+    for (const s of sessions) {
+      if (segment === s.sessionId || segment.endsWith(`-${s.sessionId}`)) {
+        return s.sessionId;
+      }
+    }
+    return null;
   }
 
   // Reads and parses a JSON request body. Empty bodies resolve to {}.
