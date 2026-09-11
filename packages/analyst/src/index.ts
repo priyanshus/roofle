@@ -82,10 +82,13 @@ export class Analyst {
     return this.db.getSession(sessionId);
   }
 
-  // Finalizes a conversation: generates and persists a one-line title from the
-  // stored rolling summary. Runs once per conversation (skipped when a title
-  // already exists) and is fire-and-forget so session finalize never blocks.
+  // Finalizes a conversation: marks it as finalized so it appears in the
+  // library, then generates and persists a one-line title from the stored
+  // rolling summary. Title generation is fire-and-forget so finalize never
+  // blocks. Skipped when a title already exists.
   finalizeSession(sessionId: string): void {
+    this.db.finalizeSession(sessionId);
+
     if (this.db.getTitle(sessionId)) {
       return;
     }

@@ -7,6 +7,7 @@ interface SessionRow {
   readonly updated_at: string;
   readonly question_count: number;
   readonly title: string | null;
+  readonly finalized_at: string | null;
 }
 
 interface ParagraphRow {
@@ -34,15 +35,22 @@ export class SessionRepository {
   touchSession(sessionId: string): void {
     this.db
       .prepare(`
-        INSERT INTO sessions (id, updated_at)
-        VALUES (?, datetime('now'))
+        INSERT INTO sessions (id, updated_at, finalized_at)
+        VALUES (?, datetime('now'), NULL)
         ON CONFLICT (id) DO UPDATE SET updated_at = datetime('now')
       `)
       .run(sessionId);
   }
 
-  // Lists all sessions, most recently active first, with question counts and
-  // the generated one-line title (when one exists).
+  // Marks a session as finalized so it appears in the library.
+  finalizeSession(sessionId: string): void {
+    this.db
+      .prepare(`UPDATE sessions SET finalized_at = datetime('now') WHERE id = ?`)
+      .run(sessionId);
+  }
+
+  // Lists finalized sessions, most recently active first, with question
+  // counts and the generated one-line title (when one exists).
   getSessions(): SessionSummary[] {
     const rows = this.db
       .prepare(`
@@ -54,7 +62,8 @@ export class SessionRepository {
           ss.title
         FROM sessions s
         LEFT JOIN session_summaries ss ON ss.session_id = s.id
-        ORDER BY s.updated_at DESC
+        WHERE s.finalized_at IS NOT NULL
+        ORDER BY s.finalized_at DESC
       `)
       .all() as SessionRow[];
 

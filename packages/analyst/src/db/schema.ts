@@ -48,7 +48,8 @@ export function initSchema(db: DatabaseSync): void {
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
       started_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      finalized_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS meeting_analyses (
@@ -61,6 +62,14 @@ export function initSchema(db: DatabaseSync): void {
   `);
 
   migrate(db);
+}
+
+function columnExists(db: DatabaseSync, table: string, col: string): boolean {
+  const cols = db
+    .prepare(`PRAGMA table_info(${table})`)
+    .all()
+    .map((c) => (c as { name: string }).name);
+  return cols.includes(col);
 }
 
 function migrate(db: DatabaseSync): void {
@@ -96,5 +105,9 @@ function migrate(db: DatabaseSync): void {
   }
   if (!meetingCols.includes('persona_context')) {
     db.exec(`ALTER TABLE meeting_analyses ADD COLUMN persona_context TEXT`);
+  }
+
+  if (!columnExists(db, 'sessions', 'finalized_at')) {
+    db.exec(`ALTER TABLE sessions ADD COLUMN finalized_at TEXT`);
   }
 }

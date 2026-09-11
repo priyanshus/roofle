@@ -82,6 +82,10 @@ export class SqliteClient {
     this.sessions.touchSession(sessionId);
   }
 
+  finalizeSession(sessionId: string): void {
+    this.sessions.finalizeSession(sessionId);
+  }
+
   getSessions(): SessionSummary[] {
     return this.sessions.getSessions();
   }

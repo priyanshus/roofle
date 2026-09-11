@@ -154,7 +154,16 @@ export default function LibraryView() {
                   <div className="session-list">
                     {group.items.map((s) => (
                       <Link key={s.sessionId} to={sessionUrl(s)} className="session-card">
-                        <div className="session-title">{s.title || formatTime(s.startedAt)}</div>
+                        <div className="session-title">
+                          {s.title ? (
+                            s.title
+                          ) : (
+                            <span className="session-title-pending">
+                              <SpinnerIcon size={14} />
+                              Generating title…
+                            </span>
+                          )}
+                        </div>
                         <div className="session-meta">
                           <span>{formatTime(s.startedAt)}</span>
                           <span>{s.questionCount} questions</span>
