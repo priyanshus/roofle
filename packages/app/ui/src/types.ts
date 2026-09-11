@@ -20,6 +20,7 @@ export interface SessionSummary {
   readonly startedAt: string;
   readonly updatedAt: string;
   readonly questionCount: number;
+  readonly title?: string;
 }
 
 export interface SessionQuestion {
@@ -35,6 +36,7 @@ export interface SessionDetail {
   readonly sessionId: string;
   readonly startedAt: string;
   readonly updatedAt: string;
+  readonly title?: string;
   readonly transcription: string;
   readonly questions: SessionQuestion[];
 }

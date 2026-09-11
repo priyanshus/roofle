@@ -23,6 +23,14 @@
   --red: #b23a2e;
   --red-soft: #f6e0dc;
 
+  /* Channel colors — Speaker (cool blue) & Microphone (warm coral) */
+  --speaker: #4a7dbd;
+  --speaker-soft: #e8f0fe;
+  --speaker-deep: #2b5593;
+  --mic: #c75a4a;
+  --mic-soft: #fce8e6;
+  --mic-deep: #9a3829;
+
   --radius: 14px;
   --radius-sm: 9px;
 
@@ -463,41 +471,210 @@ body {
 .empty-action { margin-top: 4px; }
 
 /* ---------- Transcripts ---------- */
-.transcripts { display: flex; flex-direction: column; gap: 16px; }
+.transcripts {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+@media (min-width: 840px) {
+  .transcripts {
+    grid-template-columns: 1fr 1fr;
+  }
+}
 
-.transcript {
+/* Transcript Channel Card */
+.t-channel {
+  display: flex;
+  flex-direction: column;
   background: var(--card);
   border: 1px solid var(--line);
+  border-left: 4px solid;
   border-radius: var(--radius);
-  padding: 20px 22px;
   box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  height: 300px;
+}
+.t-channel:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-lift);
 }
 
-.transcript-label {
+/* Header */
+.t-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  margin-bottom: 12px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  background: linear-gradient(180deg, rgba(43,38,32,0.02), transparent);
+  border-bottom: 1px solid var(--line);
 }
-.transcript-label .live {
+
+.t-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.t-icon-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(43, 38, 32, 0.08);
+}
+
+.t-header-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.t-name {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.2px;
+}
+
+.t-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--green);
+  background: var(--green-soft);
+  padding: 3px 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.t-live-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 0 3px var(--green-soft);
+  animation: pulse 1.4s infinite ease-in-out;
 }
 
-.transcript-text {
-  font-size: 16px;
-  line-height: 1.7;
+.t-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+/* Audio meter */
+.t-meter {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 18px;
+}
+
+.t-meter-bar {
+  width: 4px;
+  height: 100%;
+  border-radius: 2px;
+  transform-origin: bottom;
+  transition: transform 0.08s ease;
+  opacity: 0.75;
+}
+
+.t-word-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  background: var(--card-2);
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+
+/* Body */
+.t-body {
+  flex: 1;
+  padding: 16px 18px 18px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.t-text {
+  font-size: 15.5px;
+  line-height: 1.75;
   color: var(--ink);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.t-committed {
+  color: var(--ink);
+}
+
+.t-partial {
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.t-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  background: var(--accent);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+  border-radius: 1px;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Empty state inside channel */
+.t-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 16px;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+.t-empty-icon {
+  opacity: 0.35;
+  color: var(--ink-faint);
+}
+
+.t-empty-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.t-empty-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 240px;
+}
+
+/* Legacy transcript styles (kept for session view compatibility) */
+.transcript-scroll {
+  height: 300px;
+  overflow-y: auto;
+  padding-right: 6px;
 }
 
 /* Scrollable, fixed-height transcription box (session detail view). */
@@ -508,6 +685,29 @@ body {
 }
 
 /* ---------- Library ---------- */
+.library-groups { display: flex; flex-direction: column; gap: 18px; }
+
+.library-group { display: flex; flex-direction: column; gap: 10px; }
+
+.library-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 4px;
+  background: none;
+  border: none;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+.library-group-head:hover { color: var(--accent-deep); }
+.library-group-label { flex: 1; }
+
 .session-list { display: flex; flex-direction: column; gap: 12px; }
 
 .session-card {
@@ -526,6 +726,19 @@ body {
 .session-card:hover { border-color: var(--line-strong); transform: translateY(-1px); box-shadow: var(--shadow-lift); }
 
 .session-title { font-family: var(--font-serif); font-size: 16px; font-weight: 600; }
+.session-title-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--ink-faint);
+}
+.session-title-pending svg {
+  animation: spin 1s linear infinite;
+}
 .session-meta { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ink-faint); }
 .session-id { margin-left: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
 

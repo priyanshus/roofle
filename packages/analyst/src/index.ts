@@ -6,8 +6,10 @@ import type {
   SessionSummary,
   TranscriptionEvent,
 } from '@roofle/shared';
+import { Titler } from './agents/title/titler.js';
 import type { AnalystConfig } from './config.js';
 import { SqliteClient } from './db/index.js';
+import { createChatModel } from './llm/factory.js';
 import { AnalysisScheduler } from './services/analysisScheduler.js';
 import { MeetingAnalyst } from './services/meetingAnalyst.js';
 import { ParagraphAnalyst } from './services/paragraphAnalyst.js';
@@ -30,6 +32,7 @@ export class Analyst {
   private readonly scheduler: AnalysisScheduler;
   private readonly paragraphBuilder: ParagraphBuilder;
   private readonly meetingAnalyst: MeetingAnalyst;
+  private readonly titler: Titler;
   private readonly onMeetingUpdate?: (analysis: MeetingAnalysis) => void;
 
   constructor(options: AnalystOptions) {
@@ -41,6 +44,7 @@ export class Analyst {
       options.config.analysis.enableSummary ?? true
     );
     this.meetingAnalyst = new MeetingAnalyst(options.config.llm);
+    this.titler = new Titler(createChatModel(options.config.llm));
 
     this.scheduler = new AnalysisScheduler({
       analyst,
@@ -76,6 +80,33 @@ export class Analyst {
   // Returns the full transcription and questions for one conversation.
   getSession(sessionId: string): SessionDetail | null {
     return this.db.getSession(sessionId);
+  }
+
+  // Finalizes a conversation: marks it as finalized so it appears in the
+  // library, then generates and persists a one-line title from the stored
+  // rolling summary. Title generation is fire-and-forget so finalize never
+  // blocks. Skipped when a title already exists.
+  finalizeSession(sessionId: string): void {
+    this.db.finalizeSession(sessionId);
+
+    if (this.db.getTitle(sessionId)) {
+      return;
+    }
+    const summary = this.db.getSummary(sessionId);
+    if (!summary) {
+      return;
+    }
+
+    this.titler
+      .run({ summary })
+      .then(({ title }) => {
+        this.db.setTitle(sessionId, title);
+        console.log(`[title] ${sessionId}: ${title}`);
+      })
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[title] failed for ${sessionId}: ${message}`);
+      });
   }
 
   // Returns the stored meeting analysis for a session + persona, or null when

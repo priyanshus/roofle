@@ -74,7 +74,7 @@ export default function SessionView() {
       </div>
 
       <div className="section-head">
-        <h2>{formatTime(session.startedAt)}</h2>
+        <h2>{session.title || formatTime(session.startedAt)}</h2>
         <span className="count">{session.questions.length} questions</span>
       </div>
 

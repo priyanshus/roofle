@@ -6,6 +6,8 @@ interface SessionRow {
   readonly started_at: string;
   readonly updated_at: string;
   readonly question_count: number;
+  readonly title: string | null;
+  readonly finalized_at: string | null;
 }
 
 interface ParagraphRow {
@@ -33,14 +35,22 @@ export class SessionRepository {
   touchSession(sessionId: string): void {
     this.db
       .prepare(`
-        INSERT INTO sessions (id, updated_at)
-        VALUES (?, datetime('now'))
+        INSERT INTO sessions (id, updated_at, finalized_at)
+        VALUES (?, datetime('now'), NULL)
         ON CONFLICT (id) DO UPDATE SET updated_at = datetime('now')
       `)
       .run(sessionId);
   }
 
-  // Lists all sessions, most recently active first, with question counts.
+  // Marks a session as finalized so it appears in the library.
+  finalizeSession(sessionId: string): void {
+    this.db
+      .prepare(`UPDATE sessions SET finalized_at = datetime('now') WHERE id = ?`)
+      .run(sessionId);
+  }
+
+  // Lists finalized sessions, most recently active first, with question
+  // counts and the generated one-line title (when one exists).
   getSessions(): SessionSummary[] {
     const rows = this.db
       .prepare(`
@@ -48,9 +58,12 @@ export class SessionRepository {
           s.id,
           s.started_at,
           s.updated_at,
-          (SELECT COUNT(*) FROM questions q WHERE q.session_id = s.id) AS question_count
+          (SELECT COUNT(*) FROM questions q WHERE q.session_id = s.id) AS question_count,
+          ss.title
         FROM sessions s
-        ORDER BY s.updated_at DESC
+        LEFT JOIN session_summaries ss ON ss.session_id = s.id
+        WHERE s.finalized_at IS NOT NULL
+        ORDER BY s.finalized_at DESC
       `)
       .all() as SessionRow[];
 
@@ -59,14 +72,22 @@ export class SessionRepository {
       startedAt: row.started_at,
       updatedAt: row.updated_at,
       questionCount: row.question_count,
+      ...(row.title ? { title: row.title } : {}),
     }));
   }
 
   // Returns the full transcription and questions for one session.
   getSession(sessionId: string): SessionDetail | null {
     const session = this.db
-      .prepare(`SELECT id, started_at, updated_at FROM sessions WHERE id = ?`)
-      .get(sessionId) as { id: string; started_at: string; updated_at: string } | undefined;
+      .prepare(`
+        SELECT s.id, s.started_at, s.updated_at, ss.title
+        FROM sessions s
+        LEFT JOIN session_summaries ss ON ss.session_id = s.id
+        WHERE s.id = ?
+      `)
+      .get(sessionId) as
+      | { id: string; started_at: string; updated_at: string; title: string | null }
+      | undefined;
 
     if (!session) {
       return null;
@@ -93,6 +114,7 @@ export class SessionRepository {
       sessionId: session.id,
       startedAt: session.started_at,
       updatedAt: session.updated_at,
+      ...(session.title ? { title: session.title } : {}),
       transcription: paragraphs.map((p) => p.text).join('\n\n'),
       questions: questions.map((q) => ({
         id: q.id,

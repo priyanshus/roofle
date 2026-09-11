@@ -60,21 +60,6 @@ export class AudioStreamingApp {
 
     const engine = this.engine as AudioCaptureEngine;
 
-    // Lock system audio routing to a single application. No arbitrary
-    // fallback: if no configured hint matches, we fail loudly instead of
-    // capturing from an unintended app.
-    if (this.config.captureSystemAudio) {
-      const app = engine.pickApplication(this.config.appHints);
-      if (!app) {
-        const apps = engine.listApplications();
-        const names = apps.map((candidate) => candidate.applicationName).join(', ');
-        throw new Error(
-          `No capturable audio application matched hints [${this.config.appHints.join(', ')}]. ` +
-            `Available: ${names || 'none'}`
-        );
-      }
-    }
-
     this.running = true;
     this.paused = false;
 
@@ -83,16 +68,14 @@ export class AudioStreamingApp {
       console.log('Capturing microphone');
     }
     if (this.config.captureSystemAudio) {
-      const app = engine.getSelectedApplication();
-      console.log(`Capturing application: ${app?.applicationName} (pid: ${app?.processId})`);
+      console.log('Capturing all system audio');
     }
 
     for (const client of this.wsClients) {
       client.connect();
     }
 
-    const selectedApp = engine.getSelectedApplication();
-    engine.start(selectedApp?.processId ?? 0);
+    engine.start();
 
     for (const pipeline of this.pipelines) {
       pipeline.start();
@@ -116,12 +99,11 @@ export class AudioStreamingApp {
     this.paused = true;
   }
 
-  // Resumes capture after a pause, reusing the already-selected application.
+  // Resumes capture after a pause, reusing whole-system audio capture.
   resume(): void {
     if (!this.running || !this.paused) return;
     const engine = this.engine as AudioCaptureEngine;
-    const selectedApp = engine.getSelectedApplication();
-    engine.start(selectedApp?.processId ?? 0);
+    engine.start();
     this.paused = false;
   }
 

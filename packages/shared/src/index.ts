@@ -105,6 +105,8 @@ export interface SessionSummary {
   readonly startedAt: string;
   readonly updatedAt: string;
   readonly questionCount: number;
+  /** One-line generated title for the conversation, when available. */
+  readonly title?: string;
 }
 
 /** A question persisted for a session. */
@@ -123,6 +125,8 @@ export interface SessionDetail {
   readonly sessionId: string;
   readonly startedAt: string;
   readonly updatedAt: string;
+  /** One-line generated title for the conversation, when available. */
+  readonly title?: string;
   readonly transcription: string;
   readonly questions: SessionQuestion[];
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import CaptureBar from '../components/CaptureBar';
 import { MicIcon, QuestionIcon, SpeakerIcon, TranscriptIcon, TrashIcon } from '../components/Icons';
 import QuestionCard from '../components/QuestionCard';
+import TranscriptChannel from '../components/TranscriptChannel';
 import type { LiveState } from '../ws/useLiveConnection';
 
 interface Props {
@@ -21,11 +22,6 @@ export default function LiveView({ live, onClear, onStart, onStop, onPause, onRe
   const visibleQuestions = onlyOpen
     ? live.questions.filter((q) => q.status === 'open')
     : live.questions;
-
-  const renderText = (committed: string, partial: string) => {
-    const text = partial ? `${committed} ${partial}` : committed;
-    return text || 'No speech yet…';
-  };
 
   return (
     <div className="content">
@@ -99,24 +95,22 @@ export default function LiveView({ live, onClear, onStart, onStop, onPause, onRe
 
       {showTranscript ? (
         <section className="transcripts">
-          <div className="transcript">
-            <div className="transcript-label">
-              <span className="live" />
-              <SpeakerIcon size={14} /> Speaker
-            </div>
-            <div className="transcript-text">
-              {renderText(live.transcripts.system.committed, live.transcripts.system.partial)}
-            </div>
-          </div>
-          <div className="transcript">
-            <div className="transcript-label">
-              <span className="live" />
-              <MicIcon size={14} /> Microphone
-            </div>
-            <div className="transcript-text">
-              {renderText(live.transcripts.microphone.committed, live.transcripts.microphone.partial)}
-            </div>
-          </div>
+          <TranscriptChannel
+            label="Speaker"
+            icon={<SpeakerIcon size={18} />}
+            color="speaker"
+            committed={live.transcripts.system.committed}
+            partial={live.transcripts.system.partial}
+            isActive={live.captureState === 'running'}
+          />
+          <TranscriptChannel
+            label="Microphone"
+            icon={<MicIcon size={18} />}
+            color="microphone"
+            committed={live.transcripts.microphone.committed}
+            partial={live.transcripts.microphone.partial}
+            isActive={live.captureState === 'running'}
+          />
         </section>
       ) : null}
     </div>

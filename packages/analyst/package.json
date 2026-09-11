@@ -7,8 +7,9 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json && npm run copy:prompts",
-    "copy:prompts": "mkdir -p dist/agents/questions/prompts dist/agents/summary/prompts dist/agents/report/prompts/sales dist/agents/report/prompts/engineering && cp src/agents/questions/prompts/*.txt dist/agents/questions/prompts/ && cp src/agents/summary/prompts/*.txt dist/agents/summary/prompts/ && cp src/agents/report/prompts/evaluator.txt dist/agents/report/prompts/ && cp src/agents/report/prompts/sales/evaluator.txt dist/agents/report/prompts/sales/ && cp src/agents/report/prompts/engineering/evaluator.txt dist/agents/report/prompts/engineering/",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "copy:prompts": "mkdir -p dist/agents/questions/prompts dist/agents/summary/prompts dist/agents/title/prompts dist/agents/report/prompts/sales dist/agents/report/prompts/engineering && cp src/agents/questions/prompts/*.txt dist/agents/questions/prompts/ && cp src/agents/summary/prompts/*.txt dist/agents/summary/prompts/ && cp src/agents/title/prompts/*.txt dist/agents/title/prompts/ && cp src/agents/report/prompts/evaluator.txt dist/agents/report/prompts/ && cp src/agents/report/prompts/sales/evaluator.txt dist/agents/report/prompts/sales/ && cp src/agents/report/prompts/engineering/evaluator.txt dist/agents/report/prompts/engineering/",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {
     "@langchain/core": "^1.2.9",
