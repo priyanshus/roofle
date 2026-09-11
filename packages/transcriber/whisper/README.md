@@ -1,7 +1,8 @@
-# Python whisperx transcription service
+# Python mlx-whisper transcription service
 
-A Python WebSocket server that transcribes audio with Whisper (via
-[`whisperx`](https://github.com/m-bain/whisperX)). No speaker diarization —
+A Python WebSocket server that transcribes audio with Whisper on Apple silicon
+via [`mlx-whisper`](https://github.com/ml-explore/mlx-examples/tree/main/whisper)
+(MLX-converted models from the Hugging Face Hub). No speaker diarization —
 speaker attribution is done by the audio source (microphone vs system audio),
 which the Node app sends in the `start` message.
 
@@ -21,6 +22,12 @@ work with it directly. Each transcription includes a `source` field
   phrase is complete (after a silence gap)
 - On error sends: `{ "type": "error", "message" }`
 
+## Requirements
+
+- **Apple silicon (M-series)** — mlx-whisper runs on the MLX engine. It does
+  not run on Intel/CPU or CUDA the way whisperx did.
+- Python 3.9+.
+
 ## Setup
 
 ### 1. Install Python dependencies
@@ -28,11 +35,11 @@ work with it directly. Each transcription includes a `source` field
 ```bash
 cd whisper
 
-# Optional but recommended for CPU-only machines (avoids huge CUDA wheels):
-pip install torch --index-url https://download.pytorch.org/whl/cpu
-
 pip install -r requirements.txt
 ```
+
+This installs `mlx-whisper` (which pulls in `mlx`) and downloads the model
+weights from the Hugging Face Hub on first run.
 
 ## Run
 
@@ -41,8 +48,7 @@ cd whisper
 python server.py
 ```
 
-The first run downloads the Whisper and alignment models (large). Subsequent
-runs are fast.
+The first run downloads the Whisper model (large). Subsequent runs are fast.
 
 ### Environment variables
 
@@ -50,9 +56,9 @@ runs are fast.
 | --- | --- | --- |
 | `HOST` | `0.0.0.0` | Bind host |
 | `PORT` | `9000` | Bind port (must match `STT_WS_URL` in the Node app) |
-| `MODEL` | `base` | Whisper model size (`tiny`, `base`, `small`, `medium`, `large-v3`) |
-| `DEVICE` | `cpu` | `cpu` or `cuda` |
-| `COMPUTE_TYPE` | `int8` | `int8`, `float16`, `float32` |
+| `MODEL` | `mlx-community/whisper-large-v3-turbo` | MLX Whisper HF repo (or local MLX model dir), e.g. `mlx-community/whisper-large-v3` |
+| `DEVICE` | `mps` | Device for inference (Apple silicon) |
+| `COMPUTE_TYPE` | `float16` | `float16` or `float32` |
 | `WINDOW_SECONDS` | `4` | Rolling window fed to the model (smaller = faster) |
 | `TRANSCRIBE_INTERVAL_MS` | `100` | How often the loop attempts inference |
 | `MIN_AUDIO_SECONDS` | `0.3` | Minimum buffered audio before inference |
@@ -62,7 +68,7 @@ runs are fast.
 ## Run with the Node app
 
 ```bash
-# terminal 1: Python whisperx service
+# terminal 1: Python mlx-whisper service
 cd whisper && python server.py
 
 # terminal 2: Node app + UI (unchanged)
@@ -78,3 +84,4 @@ Open <http://127.0.0.1:8080>. The Node app connects to the Python service at
   shows `[MIC]` for microphone audio and `[Speaker]` for system audio.
 - **Pause-based finalization**: a phrase is only committed to the history after
   a silence gap (`PAUSE_FINALIZE_MS`), so it appears once and not mid-sentence.
+- **Model**: transcription is hardcoded to English (`language="en"`).

@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from 'child_process';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
 
 export interface WhisperServerOptions {
   readonly pythonBin: string;
@@ -15,8 +15,8 @@ export interface WhisperServerOptions {
 }
 
 /**
- * Manages the Python WhisperX WebSocket server as a child process. The server
- * is spawned before capture starts and torn down on app quit.
+ * Manages the Python mlx-whisper WebSocket server as a child process. The
+ * server is spawned before capture starts and torn down on app quit.
  */
 export class WhisperServer {
   private readonly options: WhisperServerOptions;

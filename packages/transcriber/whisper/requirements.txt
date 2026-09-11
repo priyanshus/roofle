@@ -1,14 +1,12 @@
-# Python whisperx transcription service dependencies.
+# Python mlx-whisper transcription service dependencies.
 #
 # Install with:
 #   pip install -r requirements.txt
 #
-# Note: whisperx pulls in torch, which is large. For CPU-only, install the CPU
-# build of torch first to avoid downloading CUDA wheels:
-#   pip install torch --index-url https://download.pytorch.org/whl/cpu
-#   pip install -r requirements.txt
+# Note: mlx-whisper requires Apple silicon (M-series). It pulls in `mlx` and
+# downloads an MLX-converted Whisper model from the Hugging Face Hub on first
+# use (e.g. mlx-community/whisper-large-v3-turbo). No torch/whisperx needed.
 
-whisperx>=3.1.1
-torch>=2.0.0
+mlx-whisper>=0.4.3
 numpy>=1.24
 websockets>=12.0
