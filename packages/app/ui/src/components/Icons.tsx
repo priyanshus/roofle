@@ -129,6 +129,18 @@ export function SpinnerIcon({ size = 18 }: IconProps) {
   );
 }
 
+export function ChevronIcon({ size = 16, open = false }: IconProps & { open?: boolean }) {
+  return (
+    <svg
+      {...base(size)}
+      aria-hidden="true"
+      style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s ease' }}
+    >
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  );
+}
+
 export function PlayIcon({ size = 18 }: IconProps) {
   return (
     <svg {...base(size)} aria-hidden="true">
